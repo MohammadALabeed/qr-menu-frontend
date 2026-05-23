@@ -1,0 +1,97 @@
+/* تصفير هوامش المتصفح الافتراضية ومنع السكرول الأفقي */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  width: 100%;
+  overflow-x: hidden; /* يمنع السكرول الجانبي نهائياً ويخفي الفراغ الأبيض */
+}
+
+/* تفعيل البوكس موديل لكل العناصر لضمان عدم خروجها عن العرض */
+*,
+*:before,
+*:after {
+  box-sizing: inherit;
+}
+
+/* تنسيقات عامة لتصفير الهوامش وضبط الخطوط */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+  background-color: #f9fafb;
+  color: #1f2937;
+  transition: all 0.3s ease;
+}
+
+/* حركة ناعمة للـ Modals والأزرار */
+.transition-all {
+  transition: property 0.2s ease-in-out;
+}
+/* إخفاء شريط التمرير الأبيض لجميع المتصفحات للحفاظ على المظهر الملكي */
+::-webkit-scrollbar {
+  display: none !important;
+}
+
+* {
+  scrollbar-width: none !important; /* لمتصفح فايرفوكس */
+  -ms-overflow-style: none !important; /* لمتصفح إيدج القديم */
+}
+/* ==========================================
+   ✨ تأثيرات لوحة التحكم والمطبخ الاحترافية 
+   ========================================== */
+
+/* أنيميشن الوميض للطلبات الجديدة */
+@keyframes orderPulse {
+  0% {
+    background-color: rgba(255, 235, 59, 0.15);
+    box-shadow: 0 0 5px rgba(255, 235, 59, 0.3);
+  }
+  50% {
+    background-color: rgba(255, 235, 59, 0.45);
+    box-shadow: 0 0 15px rgba(255, 193, 7, 0.6);
+  }
+  100% {
+    background-color: rgba(255, 235, 59, 0.15);
+    box-shadow: 0 0 5px rgba(255, 235, 59, 0.3);
+  }
+}
+
+/* الكلاس الخاص بالطلب الجديد */
+.new-order-card {
+  animation: orderPulse 1.8s infinite ease-in-out;
+  border: 2px solid #ffc107 !important;
+}
+
+/* زر الأرشفة الأنيق */
+.archive-btn {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s ease;
+  margin-top: 8px;
+}
+
+.archive-btn:hover {
+  background-color: #5a6268;
+}
+
+/* بطاقة إحصائية متوسط النجوم */
+.stars-analytics-card {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 15px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  margin-bottom: 20px;
+  border-top: 4px solid #ffc107;
+}
