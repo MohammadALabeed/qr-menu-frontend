@@ -1,54 +1,52 @@
-/* تصفير هوامش المتصفح الافتراضية ومنع السكرول الأفقي */
+/* ==========================================
+   ✨ تصفير الهوامش الافتراضية وضبط البوكس موديل
+   ========================================== */
+*,
+*:before,
+*:after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
 html,
 body {
   margin: 0;
   padding: 0;
-  box-sizing: border-box;
   width: 100%;
-  overflow-x: hidden !important; /* يمنع السكرول الجانبي نهائياً ويخفي الفراغ الأبيض */
-}
-
-/* تفعيل البوكس موديل لكل العناصر لضمان عدم خروجها عن العرض */
-*,
-*:before,
-*:after {
-  box-sizing: inherit;
-}
-
-/* تنسيقات عامة لتصفير الهوامش وضبط الخطوط */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  max-width: 100%;
+  min-height: 100vh; /* يضمن أن الموقع يأخذ كامل ارتفاع الشاشة دائماً */
+  overflow-x: hidden !important; /* يقتل السكرول الجانبي والبياض نهائياً */
+  -webkit-text-size-adjust: 100%; /* يمنع المتصفحات من تضخيم الخطوط فجأة عالموبايل */
 }
 
 body {
   background-color: #f9fafb;
   color: #1f2937;
-  transition: all 0.3s ease;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  position: relative;
 }
 
 /* حركة ناعمة للـ Modals والأزرار */
 .transition-all {
-  transition: property 0.2s ease-in-out;
+  transition: all 0.2s ease-in-out;
 }
 
-/* إخفاء شريط التمرير الأبيض لجميع المتصفحات للحفاظ على المظهر الملكي */
+/* إخفاء شريط التمرير للحفاظ على المظهر الملكي */
 ::-webkit-scrollbar {
   display: none !important;
 }
 
 * {
   scrollbar-width: none !important; /* لمتصفح فايرفوكس */
-  -ms-overflow-style: none !important; /* لمتصفح إيدج القديم */
+  -ms-overflow-style: none !important; /* لمتصفح إيدج */
 }
 
 /* ==========================================
-   ✨ تأثيرات لوحة التحكم والمطبخ الاحترافية 
+   🔥 تأثيرات لوحة التحكم والمطبخ الاحترافية 
    ========================================== */
 
-/* أنيميشن الوميض للطلبات الجديدة */
 @keyframes orderPulse {
   0% {
     background-color: rgba(255, 235, 59, 0.15);
@@ -64,13 +62,11 @@ body {
   }
 }
 
-/* الكلاس الخاص بالطلب الجديد */
 .new-order-card {
   animation: orderPulse 1.8s infinite ease-in-out;
   border: 2px solid #ffc107 !important;
 }
 
-/* زر الأرشفة الأنيق */
 .archive-btn {
   background-color: #6c757d;
   color: white;
@@ -87,7 +83,6 @@ body {
   background-color: #5a6268;
 }
 
-/* بطاقة إحصائية متوسط النجوم */
 .stars-analytics-card {
   background: #ffffff;
   border-radius: 8px;
@@ -99,26 +94,26 @@ body {
 }
 
 /* ==========================================
-   📱📱 التجاوب مع شاشات الموبايل (مطور وحاسم) 📱📱
+   📱📱 التجاوب الذكي والحاسم مع الموبايل 📱📱
    ========================================== */
 @media (max-width: 768px) {
-  /* إخفاء السايد بار على الموبايل لمنع خروج العناصر */
+  /* إخفاء السايد بار على الموبايل */
   .sidebar, [class*="sidebar"], [class*="Sidebar"] {
     display: none !important;
   }
 
-  /* تصفير هوامش أي حاوية رئيسية وإجبارها على حجم الشاشة 100% بدون سكرول جانبي */
+  /* حل مشكلة البياض الجانبي: نستخدم العرض التلقائي مع البادينغ لضمان عدم خروج العناصر */
   .main-content, .content, main, root, #root, .App, [class*="main-content"], [class*="content-wrapper"], [class*="container"] {
-    width: 100% !important;
+    width: auto !important; /* يمنع تمدد العرض بسبب البادينغ */
     max-width: 100% !important;
     margin: 0 !important;
-    padding: 12px !important;
-    padding-bottom: 95px !important; /* مساحة بالأسفل لكي لا يغطي الشريط السفلي على الوجبات */
+    padding: 16px !important;
+    padding-bottom: 120px !important; /* مساحة أمان ممتازة بالأسفل لظهور زر الإرسال وأزرار السلة دون تداخل */
     box-sizing: border-box !important;
     overflow-x: hidden !important;
   }
 
-  /* ضبط الهيدر أو أي نافبار علوي قديم حتى لا يمدد الصفحة يميناً */
+  /* ضبط الهيدر */
   header, nav, .navbar, [class*="nav"], [class*="header"] {
     width: 100% !important;
     max-width: 100% !important;
@@ -126,7 +121,7 @@ body {
     box-sizing: border-box !important;
   }
 
-  /* جعل البطاقات وقوائم الطعام تترتب تحت بعضها بشكل عمودي مرن */
+  /* ترتيب الكروت عمودياً بشكل مرن وثابت */
   .grid, .flex-row, [class*="grid"], [class*="cards-container"], [class*="menu-grid"], [class*="products-container"] {
     display: flex !important;
     flex-direction: column !important;
@@ -136,12 +131,11 @@ body {
     gap: 16px !important;
   }
 
-  /* ضبط حجم البطاقات الفردية لتناسب شاشة الموبايل تماماً وتختفي الفراغات */
+  /* إجبار البطاقات الفردية على الالتزام بحدود الشاشة */
   .card, .new-order-card, .stars-analytics-card, [class*="card"], [class*="product-card"] {
     width: 100% !important;
     max-width: 100% !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-    margin-top: 0 !important;
+    margin: 0 0 16px 0 !important; /* ترتيب المسافات من الأسفل فقط */
+    box-sizing: border-box !important;
   }
 }
