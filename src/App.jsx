@@ -368,6 +368,7 @@ function App() {
 
   return (
     <div
+      className="main-app-container"
       dir={lang === "ar" ? "rtl" : "ltr"}
       style={{
         minHeight: "100vh",
@@ -375,13 +376,15 @@ function App() {
         color: "#f3f4f6",
         display: "flex",
         flexDirection: isMobile ? "column" : "row",
-        fontFamily:
-          lang === "ar" ? "'Tajawal', sans-serif" : "'Urbanist', sans-serif",
+        fontFamily: lang === "ar" ? "'Tajawal', sans-serif" : "'Urbanist', sans-serif",
         transition: "all 0.3s ease",
-        position: "relative"
+        position: "relative",
+        width: "100%",
+        maxWidth: "100vw",
+        overflowX: "hidden"
       }}
     >
-      {/* الـ Toast Notification المدمج والمنبثق بديل الـ alert التقليدي */}
+      {/* الـ Toast Notification المدمج والمنبثق */}
       {toast.show && (
         <div style={{
           position: "fixed",
@@ -419,23 +422,27 @@ function App() {
       />
 
       <main
+        className="main-content-area main-content"
         style={{
           flexGrow: 1,
-          padding: isMobile ? "20px" : "40px",
+          padding: isMobile ? "12px" : "40px",
           overflowY: "auto",
-          height: isMobile ? "calc(100vh - 130px)" : "100vh",
+          overflowX: "hidden",
+          height: isMobile ? "calc(100vh - 85px)" : "100vh",
+          width: "100%",
+          boxSizing: "border-box"
         }}
       >
         {activeTab === "menu" && (
-          <div>
-            <header style={{ marginBottom: "30px" }}>
+          <div style={{ width: "100%", maxWidth: "100%", overflowX: "hidden" }}>
+            <header style={{ marginBottom: "30px", width: "100%" }}>
               <h1
                 style={{
-                  fontSize: isMobile ? "26px" : "36px",
+                  fontSize: isMobile ? "24px" : "36px",
                   fontWeight: "700",
                   color: "#ffffff",
                   letterSpacing: "0.04em",
-                  lineHeight: 1.05,
+                  lineHeight: 1.1,
                   textShadow: "0 10px 30px rgba(16, 185, 129, 0.18)",
                 }}
               >
@@ -458,6 +465,7 @@ function App() {
               </div>
             </header>
 
+            {/* تم حل مشكلة سكرول التصنيفات لتجنب بياض الصفحة الجانبي */}
             <div
               style={{
                 display: "flex",
@@ -468,6 +476,8 @@ function App() {
                 WebkitOverflowScrolling: "touch",
                 scrollbarWidth: "none",
                 msOverflowStyle: "none",
+                maxWidth: "100%",
+                boxSizing: "border-box"
               }}
             >
               {categories.map((cat) => (
@@ -572,6 +582,7 @@ function App() {
               </p>
             ) : (
               <div
+                className="grid"
                 style={{
                   display: "grid",
                   gridTemplateColumns: isMobile
@@ -580,6 +591,7 @@ function App() {
                       ? "1fr 1fr"
                       : "repeat(auto-fill, minmax(300px, 1fr))",
                   gap: "25px",
+                  width: "100%"
                 }}
               >
                 {filteredMenu.map((item) => (
@@ -603,6 +615,7 @@ function App() {
               display: "flex",
               flexDirection: "column",
               gap: "25px",
+              width: "100%"
             }}
           >
             <h1 style={{ fontSize: "32px", fontWeight: "700" }}>
@@ -630,6 +643,7 @@ function App() {
                 display: "grid",
                 gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
                 gap: "20px",
+                width: "100%"
               }}
             >
               <div
@@ -677,6 +691,7 @@ function App() {
                 border: "1px solid rgba(16, 185, 129, 0.15)",
                 boxShadow: "0 20px 40px rgba(0,0,0,0.3)",
                 marginTop: "15px",
+                width: "100%"
               }}
             >
               <h2
@@ -843,4 +858,3 @@ function App() {
 }
 
 export default App;
-
