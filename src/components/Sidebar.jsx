@@ -14,7 +14,7 @@ function Sidebar({
   const [isHoveredToggle, setIsHoveredToggle] = useState(false);
   const [showLangDropdown, setShowLangDropdown] = useState(false);
 
-  // إذا كنا على الموبايل، سنعرض شريط سفلي بدلاً من السايدبار الجانبي
+  // إذا كنا على الموبايل، سنعرض شريط سفلي متكامل ومطور
   if (isMobile) {
     return (
       <nav
@@ -23,81 +23,116 @@ function Sidebar({
           bottom: 0,
           left: 0,
           right: 0,
-          height: "70px",
-          backgroundColor: "rgba(15, 22, 38, 0.85)",
+          height: "75px",
+          backgroundColor: "rgba(15, 22, 38, 0.95)",
           backdropFilter: "blur(12px)",
           borderTop: "1px solid #1e293b",
           display: "flex",
-          justifyContent: "space-around",
+          justifyContent: "space-between",
           alignItems: "center",
           zIndex: 100,
-          padding: "0 10px",
+          padding: "0 15px",
         }}
       >
+        {/* زر المنيو */}
         <button
           onClick={() => setActiveTab("menu")}
           style={{
             background: "none",
             border: "none",
             color: activeTab === "menu" ? "#10b981" : "#94a3b8",
-            fontSize: "14px",
+            fontSize: "12px",
             fontWeight: "700",
             cursor: "pointer",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "4px",
+            flex: 1,
           }}
         >
-          {lang === "ar" ? "🍽️ المنيو" : "🍽️ Menu"}
+          <span style={{ fontSize: "18px" }}>🍽️</span>
+          {lang === "ar" ? "المنيو" : "Menu"}
         </button>
 
+        {/* زر من نحن - تم إضافته للموبايل */}
+        <button
+          onClick={() => setActiveTab("about")}
+          style={{
+            background: "none",
+            border: "none",
+            color: activeTab === "about" ? "#10b981" : "#94a3b8",
+            fontSize: "12px",
+            fontWeight: "700",
+            cursor: "pointer",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "4px",
+            flex: 1,
+          }}
+        >
+          <span style={{ fontSize: "18px" }}>✨</span>
+          {lang === "ar" ? "من نحن" : "About"}
+        </button>
+
+        {/* زر السلة المركزي المشع */}
         <button
           onClick={() => setIsCartOpen(true)}
           style={{
             background: "#10b981",
             border: "none",
             color: "#ffffff",
-            padding: "8px 16px",
-            borderRadius: "20px",
-            fontSize: "14px",
+            padding: "10px 14px",
+            borderRadius: "18px",
+            fontSize: "13px",
             fontWeight: "700",
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
             gap: "5px",
+            boxShadow: "0 4px 12px rgba(16, 185, 129, 0.3)",
           }}
         >
           🛒 ({cartCount})
         </button>
 
-        {/* زر تغيير اللغة مع قائمة منسدلة على الموبايل */}
-        <div style={{ position: "relative" }}>
+        {/* زر تغيير اللغة الذكي */}
+        <div style={{ position: "relative", flex: 1, display: "flex", justifyContent: "center" }}>
           <button
             onClick={() => setShowLangDropdown(!showLangDropdown)}
             style={{
               background: "none",
               border: "none",
               color: "#94a3b8",
-              fontSize: "14px",
+              fontSize: "11px",
               fontWeight: "600",
               cursor: "pointer",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "4px",
             }}
           >
-            🌐 {lang === "ar" ? "English" : "العربية"}
+            <span style={{ fontSize: "18px" }}>🌐</span>
+            {lang === "ar" ? "English" : "العربية"}
           </button>
           {showLangDropdown && (
             <div
               style={{
                 position: "absolute",
-                bottom: "50px",
+                bottom: "55px",
                 left: "50%",
                 transform: "translateX(-50%)",
                 backgroundColor: "#0f1626",
                 border: "1px solid #1e293b",
                 borderRadius: "12px",
-                padding: "8px",
+                padding: "6px",
                 display: "flex",
                 flexDirection: "column",
                 gap: "4px",
                 zIndex: 200,
-                minWidth: "140px",
+                minWidth: "120px",
                 boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
               }}
             >
@@ -110,13 +145,11 @@ function Sidebar({
                   background: lang === "ar" ? "rgba(16, 185, 129, 0.15)" : "transparent",
                   border: "none",
                   color: lang === "ar" ? "#10b981" : "#94a3b8",
-                  padding: "10px 16px",
-                  borderRadius: "8px",
+                  padding: "8px 12px",
+                  borderRadius: "6px",
                   cursor: "pointer",
-                  fontSize: "14px",
+                  fontSize: "13px",
                   fontWeight: "600",
-                  textAlign: "center",
-                  whiteSpace: "nowrap",
                 }}
               >
                 🇸🇦 العربية
@@ -130,13 +163,11 @@ function Sidebar({
                   background: lang === "en" ? "rgba(16, 185, 129, 0.15)" : "transparent",
                   border: "none",
                   color: lang === "en" ? "#10b981" : "#94a3b8",
-                  padding: "10px 16px",
-                  borderRadius: "8px",
+                  padding: "8px 12px",
+                  borderRadius: "6px",
                   cursor: "pointer",
-                  fontSize: "14px",
+                  fontSize: "13px",
                   fontWeight: "600",
-                  textAlign: "center",
-                  whiteSpace: "nowrap",
                 }}
               >
                 🇬🇧 English
@@ -148,7 +179,7 @@ function Sidebar({
     );
   }
 
-  // الـ Sidebar الخاص بالشاشات الكبيرة (الكمبيوتر والتابلت)
+  // الـ Sidebar الخاص بالشاشات الكبيرة (الكمبيوتر والتابلت) - يبقى كما هو تماماً
   return (
     <aside
       style={{
@@ -167,7 +198,7 @@ function Sidebar({
         flexShrink: 0,
       }}
     >
-      {/* زر الففتح والإغلاق التفاعلي */}
+      {/* زر الفتح والإغلاق التفاعلي */}
       <button
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
         onMouseEnter={() => setIsHoveredToggle(true)}

@@ -33,6 +33,7 @@ body {
 .transition-all {
   transition: property 0.2s ease-in-out;
 }
+
 /* إخفاء شريط التمرير الأبيض لجميع المتصفحات للحفاظ على المظهر الملكي */
 ::-webkit-scrollbar {
   display: none !important;
@@ -42,6 +43,7 @@ body {
   scrollbar-width: none !important; /* لمتصفح فايرفوكس */
   -ms-overflow-style: none !important; /* لمتصفح إيدج القديم */
 }
+
 /* ==========================================
    ✨ تأثيرات لوحة التحكم والمطبخ الاحترافية 
    ========================================== */
@@ -94,4 +96,38 @@ body {
   text-align: center;
   margin-bottom: 20px;
   border-top: 4px solid #ffc107;
+}
+
+/* ==========================================
+   📱📱 التجاوب مع شاشات الموبايل (جديد) 📱📱
+   ========================================== */
+@media (max-width: 768px) {
+  /* إخفاء السايد بار على الموبايل لمنع خروج العناصر */
+  .sidebar, [class*="sidebar"], [class*="Sidebar"] {
+    display: none !important;
+  }
+
+  /* جعل المحتوى الرئيسي يأخذ العرض كاملاً وبدون هوامش تسبب بياض */
+  .main-content, .content, main, [class*="main-content"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 12px !important;
+  }
+
+  /* جعل البطاقات وقوائم الطعام تترتب تحت بعضها بشكل مرن */
+  .grid, .flex-row, [class*="grid"], [class*="cards-container"] {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    gap: 15px !important;
+  }
+
+  /* ضبط حجم البطاقات الفردية لتناسب شاشة الموبايل تماماً */
+  .card, .new-order-card, .stars-analytics-card, [class*="card"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
 }
