@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import io from "socket.io-client";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+// ابحث عن السطر القديم الذي عرفت فيه API_URL أو API_BASE_URL واحذفه، وضع مكانه:
+const API_URL = "https://backend-virid-kappa-61.vercel.app";
 
 function Dashboard() {
   // --- حالات نظام تسجيل الدخول ---

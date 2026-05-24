@@ -4,7 +4,8 @@ import CartSlider from "./components/CartSlider";
 import FoodCard from "./components/FoodCard";
 
 // قراءة رابط السيرفر من ملف الـ .env مع رابط احتياطي ذكي لضمان استقرار التطبيق
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+// استبدل السطر القديم بهذا السطر المباشر:
+const API_BASE_URL = "https://backend-virid-kappa-61.vercel.app";
 
 function App() {
   const [lang, setLang] = useState("ar");
