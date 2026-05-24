@@ -1,16 +1,29 @@
-# React + Vite
+# 🍽️ نظام إدارة المطعم والمنيو الذكي (QR-Menu & Admin Dashboard)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+نظام متكامل لإدارة المطاعم يعتمد على تحديث البيانات الفوري (Real-time) والمزامنة المستقرة بين لوحة تحكم المطبخ/الإدارة وشاشة الزبائن الرقمية عبر نظام الـ QR Code.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 🚀 التحديثات الأخيرة (Latest Updates)
 
-## React Compiler
+تم تحسين وتأمين النظام بالكامل في التحديث الأخير ليشمل:
+* **تأمين اتصال الـ WebSockets:** نقل اتصال الـ Socket.io ليكون ديناميكياً ومشروطاً بوجود توكن الإدارة (`JWT`) لمنع الاتصالات المجهولة.
+* **تحسين الأداء (State Optimization):** تجميع وهيكلة طلبات الـ HTTP في دالة موحدة `authenticatedFetch` لمنع تكرار الأكواد وتسريب الذاكرة (Memory Leaks).
+* **إدارة المنيو بالكامل:** إضافة ميزة **تعديل الوجبات (Edit Item)** ديناميكياً من نفس واجهة الإدارة بجانب الحذف والإضافة وتغيير حالة التوفر.
+* **فصل المنافذ (Port Splitting):** إجبار تطبيق المنيو على العمل على بورت `3000` والداشبورد على `5173` لتجنب أي تعارض أثناء التشغيل المحلي.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## 🛠️ تقنيات المشروع (Tech Stack)
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+* **Frontend:** React.js (v19), Vite, React Router DOM.
+* **Backend & Real-time:** Node.js, Express.js, Socket.io (v4).
+* **Authentication:** JSON Web Tokens (JWT) & LocalStorage.
+
+---
+
+## 💻 طريقة التشغيل المحلي (Local Setup)
+
+تأكد أولاً من إعداد ملف `.env` في المجلدات المناسبة وتحضير الرابط التالي:
+```env
+VITE_API_URL=http://localhost:5000

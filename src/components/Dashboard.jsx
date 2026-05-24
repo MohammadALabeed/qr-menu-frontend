@@ -1,8 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import io from "socket.io-client";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-const socket = io(API_URL);
 
 function Dashboard() {
   // --- حالات نظام تسجيل الدخول ---
@@ -31,17 +30,42 @@ function Dashboard() {
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsMessage, setSettingsMessage] = useState({ text: "", type: "" });
 
+  // مرجع لحفظ كائن الـ socket الحالي لمنع التكرار
+  const socketRef = useRef(null);
+
   // دالة تشغيل الصوت للتنبيهات
   const playNotificationSound = () => {
     const audio = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
-    audio.play().catch(() => console.log("تنبيه: يحتاج تفاعل للتشغيل"));
+    audio.play().catch(() => console.log("تنبيه: يحتاج تفاعل من المستخدم أولاً لتشغيل الصوت"));
   };
 
-  // تسجيل الخروج - مغلفة بـ useCallback لمنع إعادة بناء الدالة وتدمير الـ Effects
+  // تسجيل الخروج
   const handleLogout = useCallback(() => {
     localStorage.removeItem("admin_token");
     setToken("");
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+    }
   }, []);
+
+  // دالة موحدة ومختصرة للقيام بطلبات الـ HTTP المحمية بالتوكن
+  const authenticatedFetch = useCallback((endpoint, options = {}) => {
+    if (!token) return Promise.reject("No token available");
+
+    const headers = {
+      "Authorization": `Bearer ${token}`,
+      ...options.headers
+    };
+
+    return fetch(`${API_URL}${endpoint}`, { ...options, headers })
+      .then((res) => {
+        if (res.status === 401 || res.status === 403) {
+          handleLogout();
+          throw new Error("Unauthorized access - logged out");
+        }
+        return res.json();
+      });
+  }, [token, handleLogout]);
 
   // معالج تسجيل الدخول
   const handleLogin = (e) => {
@@ -70,157 +94,101 @@ function Dashboard() {
     });
   };
 
-  // معالج تحديث وتكرار جلب المنيو بشكل آمن ومستقر
+  // معالج جلب المنيو
   const triggerMenuFetch = useCallback(() => {
-    if (!token) return;
-    fetch(`${API_URL}/api/admin/menu`, {
-      headers: { "Authorization": `Bearer ${token}` }
-    })
-      .then((res) => {
-        if (res.status === 401 || res.status === 403) {
-          handleLogout();
-          throw new Error("Unauthorized");
-        }
-        return res.json();
-      })
+    authenticatedFetch("/api/admin/menu")
       .then((data) => setMenu(Array.isArray(data) ? data : []))
       .catch((err) => console.error("Error fetching menu:", err));
-  }, [token, handleLogout]);
+  }, [authenticatedFetch]);
 
-  // 1. تأثير جلب البيانات الأساسية عند تحديث التوكن (تم تصحيح الأمان والاعتماديات)
+  // 1. تأثير جلب البيانات الأساسية عند تحديث التوكن
   useEffect(() => {
     if (!token) return;
 
-    // دالة جلب الإعدادات العامة
-    const fetchSettingsData = () => {
-      fetch(`${API_URL}/api/admin/settings`, {
-        headers: { "Authorization": `Bearer ${token}` }
-      })
-        .then((res) => {
-          if (res.status === 401 || res.status === 403) {
-            handleLogout();
-            throw new Error("Unauthorized");
-          }
-          return res.json();
-        })
-        .then((data) => {
-          if (data) {
-            setSettings({
-              restaurant_name: data.restaurant_name || "",
-              about_text: data.about_text || "",
-              logo_url: data.logo_url || "",
-              facebook_url: data.facebook_url || "",
-              instagram_url: data.instagram_url || "",
-              working_hours: data.working_hours || ""
-            });
-          }
-        })
-        .catch((err) => console.error("Error fetching settings:", err));
-    };
-
-    // جلب الطلبات مستقلًا
-    fetch(`${API_URL}/api/admin/orders`, {
-      headers: { "Authorization": `Bearer ${token}` }
-    })
-      .then((res) => {
-        if (res.status === 401 || res.status === 403) {
-          handleLogout();
-          throw new Error("Unauthorized");
+    // جلب الإعدادات العامة
+    authenticatedFetch("/api/admin/settings")
+      .then((data) => {
+        if (data) {
+          setSettings({
+            restaurant_name: data.restaurant_name || "",
+            about_text: data.about_text || "",
+            logo_url: data.logo_url || "",
+            facebook_url: data.facebook_url || "",
+            instagram_url: data.instagram_url || "",
+            working_hours: data.working_hours || ""
+          });
         }
-        return res.json();
       })
+      .catch((err) => console.error("Error fetching settings:", err));
+
+    // جلب الطلبات
+    authenticatedFetch("/api/admin/orders")
       .then((data) => setOrders(Array.isArray(data) ? data : []))
       .catch((err) => console.error("Error fetching orders:", err));
 
-    // جلب التقييمات مستقلًا
-    fetch(`${API_URL}/api/admin/feedback`, {
-      headers: { "Authorization": `Bearer ${token}` }
-    })
-      .then((res) => {
-        if (res.status === 401 || res.status === 403) {
-          handleLogout();
-          throw new Error("Unauthorized");
-        }
-        return res.json();
-      })
+    // جلب التقييمات
+    authenticatedFetch("/api/admin/feedback")
       .then((data) => setFeedbacks(Array.isArray(data) ? data : []))
       .catch((err) => console.error("Error fetching feedback:", err));
 
-    // جلب متوسط تقييم النجوم مستقلًا
-    fetch(`${API_URL}/api/admin/analytics/rating`, {
-      headers: { "Authorization": `Bearer ${token}` }
-    })
-      .then((res) => {
-        if (res.status === 401 || res.status === 403) {
-          handleLogout();
-          throw new Error("Unauthorized");
-        }
-        return res.json();
-      })
+    // جلب متوسط التقييم
+    authenticatedFetch("/api/admin/analytics/rating")
       .then((data) => {
         if (data && data.success) setAvgRating(data.averageRating);
       })
       .catch((err) => console.error("Error fetching ratings:", err));
 
-    // تشغيل الجلب الفوري
     triggerMenuFetch();
-    fetchSettingsData();
+  }, [token, triggerMenuFetch, authenticatedFetch]);
 
-  }, [token, handleLogout, triggerMenuFetch]);
-
-  // 2. تأثير الـ Socket المستقر
+  // 2. تأثير الـ Socket المؤمن والمربوط بالتوكن وحالة تسجيل الدخول
   useEffect(() => {
-    socket.on("new_order_received", (newOrder) => {
+    if (!token) return;
+
+    // إنشاء اتصال الـ Socket فقط عندما يتوفر التوكن وتمريره في الـ auth
+    socketRef.current = io(API_URL, {
+      auth: { token: token }
+    });
+
+    const socketInstance = socketRef.current;
+
+    socketInstance.on("new_order_received", (newOrder) => {
       playNotificationSound();
       setOrders((prev) => [newOrder, ...prev]);
     });
 
-    socket.on("order_status_updated", ({ id, status }) => {
+    socketInstance.on("order_status_updated", ({ id, status }) => {
       setOrders((prev) =>
         prev.map((o) => (o.id === id ? { ...o, status: status } : o))
       );
     });
 
-    socket.on("order_archived", ({ id }) => {
+    socketInstance.on("order_archived", ({ id }) => {
       setOrders((prev) => prev.filter((o) => o.id !== id));
     });
 
+    // تنظيف الاتصال عند الخروج أو تغيير التوكن
     return () => {
-      socket.off("new_order_received");
-      socket.off("order_status_updated");
-      socket.off("order_archived");
+      socketInstance.off("new_order_received");
+      socketInstance.off("order_status_updated");
+      socketInstance.off("order_archived");
+      socketInstance.disconnect();
     };
-  }, []);
+  }, [token]);
 
   const updateOrderStatus = (orderId, newStatus) => {
-    fetch(`${API_URL}/api/admin/orders/${orderId}/status`, {
+    authenticatedFetch(`/api/admin/orders/${orderId}/status`, {
       method: "PUT",
-      headers: { 
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: newStatus }),
-    })
-    .then((res) => {
-      if (res.status === 401 || res.status === 403) handleLogout();
     })
     .catch((err) => console.error("Error updating order status:", err));
   };
 
   const handleArchiveOrder = (orderId) => {
-    fetch(`${API_URL}/api/admin/orders/${orderId}/archive`, {
+    authenticatedFetch(`/api/admin/orders/${orderId}/archive`, {
       method: "PUT",
-      headers: { 
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-      }
-    })
-    .then((res) => {
-      if (res.status === 401 || res.status === 403) {
-        handleLogout();
-        throw new Error("Unauthorized");
-      }
-      return res.json();
+      headers: { "Content-Type": "application/json" }
     })
     .then((data) => {
       if (data && data.success) {
@@ -234,20 +202,10 @@ function Dashboard() {
     e.preventDefault();
     if (!newItem.name || !newItem.price) return alert("الرجاء ملء اسم الوجبة وسعرها ⚠️");
 
-    fetch(`${API_URL}/api/admin/menu`, {
+    authenticatedFetch("/api/admin/menu", {
       method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newItem)
-    })
-    .then((res) => {
-      if (res.status === 401 || res.status === 403) {
-        handleLogout();
-        throw new Error("Unauthorized");
-      }
-      return res.json();
     })
     .then(() => {
       triggerMenuFetch();
@@ -258,31 +216,21 @@ function Dashboard() {
 
   const handleToggleAvailable = (id, currentStatus) => {
     const nextStatus = currentStatus === 1 ? 0 : 1;
-    fetch(`${API_URL}/api/admin/menu/${id}/toggle`, {
+    authenticatedFetch(`/api/admin/menu/${id}/toggle`, {
       method: "PUT",
-      headers: { 
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ is_available: nextStatus })
     })
-    .then((res) => {
-      if (res.status === 401 || res.status === 403) handleLogout();
-      else triggerMenuFetch();
-    })
+    .then(() => triggerMenuFetch())
     .catch((err) => console.error("Error toggling availability:", err));
   };
 
   const deleteItem = (id) => {
     if (window.confirm("هل أنت متأكد من حذف هذه الوجبة نهائياً؟ 🚨")) {
-      fetch(`${API_URL}/api/admin/menu/${id}`, { 
-        method: "DELETE",
-        headers: { "Authorization": `Bearer ${token}` }
+      authenticatedFetch(`/api/admin/menu/${id}`, { 
+        method: "DELETE"
       })
-      .then((res) => {
-        if (res.status === 401 || res.status === 403) handleLogout();
-        else triggerMenuFetch();
-      })
+      .then(() => triggerMenuFetch())
       .catch((err) => console.error("Error deleting item:", err));
     }
   };
@@ -292,20 +240,10 @@ function Dashboard() {
     setSettingsLoading(true);
     setSettingsMessage({ text: "", type: "" });
 
-    fetch(`${API_URL}/api/admin/settings`, {
+    authenticatedFetch("/api/admin/settings", {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(settings)
-    })
-    .then((res) => {
-      if (res.status === 401 || res.status === 403) {
-        handleLogout();
-        throw new Error("Unauthorized");
-      }
-      return res.json();
     })
     .then((data) => {
       setSettingsLoading(false);
