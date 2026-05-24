@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import io from "socket.io-client";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -37,6 +37,12 @@ function Dashboard() {
     audio.play().catch(() => console.log("تنبيه: يحتاج تفاعل للتشغيل"));
   };
 
+  // تسجيل الخروج - مغلفة بـ useCallback لمنع إعادة بناء الدالة وتدمير الـ Effects
+  const handleLogout = useCallback(() => {
+    localStorage.removeItem("admin_token");
+    setToken("");
+  }, []);
+
   // معالج تسجيل الدخول
   const handleLogin = (e) => {
     e.preventDefault();
@@ -64,14 +70,8 @@ function Dashboard() {
     });
   };
 
-  // تسجيل الخروج
-  const handleLogout = () => {
-    localStorage.removeItem("admin_token");
-    setToken("");
-  };
-
-  // معالج تحديث وتكرار جلب المنيو بعد الإضافة أو الحذف بشكل آمن
-  const triggerMenuFetch = () => {
+  // معالج تحديث وتكرار جلب المنيو بشكل آمن ومستقر
+  const triggerMenuFetch = useCallback(() => {
     if (!token) return;
     fetch(`${API_URL}/api/admin/menu`, {
       headers: { "Authorization": `Bearer ${token}` }
@@ -85,27 +85,11 @@ function Dashboard() {
       })
       .then((data) => setMenu(Array.isArray(data) ? data : []))
       .catch((err) => console.error("Error fetching menu:", err));
-  };
+  }, [token, handleLogout]);
 
-  // 1. تأثير جلب البيانات الأساسية عند تحديث التوكن (تم إصلاح الاعتماديات بالكامل)
+  // 1. تأثير جلب البيانات الأساسية عند تحديث التوكن (تم تصحيح الأمان والاعتماديات)
   useEffect(() => {
     if (!token) return;
-
-    // دالة جلب المنيو
-    const fetchMenuData = () => {
-      fetch(`${API_URL}/api/admin/menu`, {
-        headers: { "Authorization": `Bearer ${token}` }
-      })
-        .then((res) => {
-          if (res.status === 401 || res.status === 403) {
-            handleLogout();
-            throw new Error("Unauthorized");
-          }
-          return res.json();
-        })
-        .then((data) => setMenu(Array.isArray(data) ? data : []))
-        .catch((err) => console.error("Error fetching menu:", err));
-    };
 
     // دالة جلب الإعدادات العامة
     const fetchSettingsData = () => {
@@ -178,11 +162,11 @@ function Dashboard() {
       })
       .catch((err) => console.error("Error fetching ratings:", err));
 
-    // تشغيل جلب البيانات
-    fetchMenuData();
+    // تشغيل الجلب الفوري
+    triggerMenuFetch();
     fetchSettingsData();
 
-  }, [token]);
+  }, [token, handleLogout, triggerMenuFetch]);
 
   // 2. تأثير الـ Socket المستقر
   useEffect(() => {
@@ -239,7 +223,7 @@ function Dashboard() {
       return res.json();
     })
     .then((data) => {
-      if (data.success) {
+      if (data && data.success) {
         setOrders((prev) => prev.filter((o) => o.id !== orderId));
       }
     })
@@ -303,7 +287,6 @@ function Dashboard() {
     }
   };
 
-  // دالة حفظ الإعدادات العامة الجديدة للسيرفر
   const handleUpdateSettings = (e) => {
     e.preventDefault();
     setSettingsLoading(true);
@@ -326,7 +309,7 @@ function Dashboard() {
     })
     .then((data) => {
       setSettingsLoading(false);
-      if (data.success) {
+      if (data && data.success) {
         setSettingsMessage({ text: "🟢 تم تحديث الإعدادات العامة بنجاح واقتدار!", type: "success" });
       } else {
         setSettingsMessage({ text: "❌ فشل تحديث الإعدادات!", type: "error" });
@@ -366,13 +349,13 @@ function Dashboard() {
         <h1 style={{ fontSize: "28px", fontWeight: "700", color: "#ffffff", margin: 0 }}>شاشة المطبخ والإدارة 👑</h1>
         <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
           <button onClick={() => setActiveSubTab("live-orders")} style={{ padding: "10px 20px", borderRadius: "12px", cursor: "pointer", fontWeight: "bold", border: activeSubTab === "live-orders" ? "1px solid #10b981" : "1px solid rgba(255,255,255,0.08)", backgroundColor: activeSubTab === "live-orders" ? "rgba(16, 185, 129, 0.15)" : "rgba(255,255,255,0.04)", color: activeSubTab === "live-orders" ? "#34d399" : "#cbd5e1" }}>
-            🔥 الطلبات ({orders.filter(o => o.status !== "completed").length})
+            🔥 الطلبات ({Array.isArray(orders) ? orders.filter(o => o.status !== "completed").length : 0})
           </button>
           <button onClick={() => setActiveSubTab("menu-manage")} style={{ padding: "10px 20px", borderRadius: "12px", cursor: "pointer", fontWeight: "bold", border: activeSubTab === "menu-manage" ? "1px solid #3b82f6" : "1px solid rgba(255,255,255,0.08)", backgroundColor: activeSubTab === "menu-manage" ? "rgba(59, 130, 246, 0.15)" : "rgba(255,255,255,0.04)", color: activeSubTab === "menu-manage" ? "#60a5fa" : "#cbd5e1" }}>
-            🍽️ إدارة المنيو ({menu.length})
+            🍽️ إدارة المنيو ({Array.isArray(menu) ? menu.length : 0})
           </button>
           <button onClick={() => setActiveSubTab("feedback-log")} style={{ padding: "10px 20px", borderRadius: "12px", cursor: "pointer", fontWeight: "bold", border: activeSubTab === "feedback-log" ? "1px solid #fbbf24" : "1px solid rgba(255,255,255,0.08)", backgroundColor: activeSubTab === "feedback-log" ? "rgba(251, 191, 36, 0.15)" : "rgba(255,255,255,0.04)", color: activeSubTab === "feedback-log" ? "#fbbf24" : "#cbd5e1" }}>
-            📣 التقييمات ({feedbacks.length})
+            📣 التقييمات ({Array.isArray(feedbacks) ? feedbacks.length : 0})
           </button>
           <button onClick={() => setActiveSubTab("general-settings")} style={{ padding: "10px 20px", borderRadius: "12px", cursor: "pointer", fontWeight: "bold", border: activeSubTab === "general-settings" ? "1px solid #a855f7" : "1px solid rgba(255,255,255,0.08)", backgroundColor: activeSubTab === "general-settings" ? "rgba(168, 85, 247, 0.15)" : "rgba(255,255,255,0.04)", color: activeSubTab === "general-settings" ? "#c084fc" : "#cbd5e1" }}>
             ⚙️ الإعدادات العامة
@@ -387,8 +370,8 @@ function Dashboard() {
       {/* 1. تبويب الطلبات الحية */}
       {activeSubTab === "live-orders" && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "20px" }}>
-          {orders.map((order) => (
-            <div key={order.id} className={order.status === "pending" ? "new-order-card" : ""} style={{ backgroundColor: "rgba(15, 22, 38, 0.7)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "20px", padding: "20px", transition: "all 0.3s ease" }}>
+          {Array.isArray(orders) && orders.map((order) => (
+            <div key={order.id} style={{ backgroundColor: "rgba(15, 22, 38, 0.7)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "20px", padding: "20px", transition: "all 0.3s ease" }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "15px" }}>
                 <span>طاولة: {order.table_number}</span>
                 <span style={{ color: order.status === "pending" ? "#f87171" : "#34d399" }}>
@@ -445,7 +428,7 @@ function Dashboard() {
               </tr>
             </thead>
             <tbody>
-              {menu.map((item) => (
+              {Array.isArray(menu) && menu.map((item) => (
                 <tr key={item.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
                   <td style={{ padding: "15px" }}>
                     {item.image_url ? (
@@ -479,7 +462,7 @@ function Dashboard() {
             <h3 style={{ margin: "0 0 10px 0" }}>🌟 متوسط تقييم المطعم العام</h3>
             <p style={{ fontSize: "28px", fontWeight: "bold", color: "#ffc107", margin: 0 }}>{avgRating} / 5</p>
           </div>
-          {feedbacks.map(fb => (
+          {Array.isArray(feedbacks) && feedbacks.map(fb => (
             <div key={fb.id} style={{ padding: "15px", backgroundColor: "rgba(255,255,255,0.03)", borderRadius: "10px" }}>
                 طاولة {fb.table_number}: {fb.comment} {fb.rating && `(التقييم: ${fb.rating} ⭐)`}
             </div>

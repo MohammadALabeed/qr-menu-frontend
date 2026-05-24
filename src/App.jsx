@@ -3,6 +3,9 @@ import Sidebar from "./components/Sidebar";
 import CartSlider from "./components/CartSlider";
 import FoodCard from "./components/FoodCard";
 
+// قراءة رابط السيرفر من ملف الـ .env مع رابط احتياطي ذكي لضمان استقرار التطبيق
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
 function App() {
   const [lang, setLang] = useState("ar");
   const [activeTab, setActiveTab] = useState("menu");
@@ -72,7 +75,7 @@ function App() {
 
     const fetchMenu = async () => {
       try {
-        const response = await fetch("http://localhost:5000/api/menu");
+        const response = await fetch(`${API_BASE_URL}/api/menu`);
         const data = await response.json();
         
         if (isMounted) {
@@ -236,7 +239,7 @@ function App() {
     };
 
     try {
-      const response = await fetch("http://localhost:5000/api/orders", {
+      const response = await fetch(`${API_BASE_URL}/api/orders`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -286,7 +289,7 @@ function App() {
     };
 
     try {
-      const response = await fetch("http://localhost:5000/api/feedback", {
+      const response = await fetch(`${API_BASE_URL}/api/feedback`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
