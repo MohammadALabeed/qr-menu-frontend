@@ -18,6 +18,9 @@ function Dashboard() {
   const [newItem, setNewItem] = useState({ name: "", price: "", category: "مأكولات", image_url: "" });
   const [avgRating, setAvgRating] = useState("0");
 
+  // --- حالة تعديل وجبة معينة (الزر المضاف حديثاً) ---
+  const [editingItem, setEditingItem] = useState(null);
+
   // --- حالات إعدادات المتجر العامة الجديدة ---
   const [settings, setSettings] = useState({
     restaurant_name: "",
@@ -54,6 +57,7 @@ function Dashboard() {
 
     const headers = {
       "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json",
       ...options.headers
     };
 
@@ -145,7 +149,6 @@ function Dashboard() {
   useEffect(() => {
     if (!token) return;
 
-    // إنشاء اتصال الـ Socket فقط عندما يتوفر التوكن وتمريره في الـ auth
     socketRef.current = io(API_URL, {
       auth: { token: token }
     });
@@ -167,7 +170,6 @@ function Dashboard() {
       setOrders((prev) => prev.filter((o) => o.id !== id));
     });
 
-    // تنظيف الاتصال عند الخروج أو تغيير التوكن
     return () => {
       socketInstance.off("new_order_received");
       socketInstance.off("order_status_updated");
@@ -179,7 +181,6 @@ function Dashboard() {
   const updateOrderStatus = (orderId, newStatus) => {
     authenticatedFetch(`/api/admin/orders/${orderId}/status`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: newStatus }),
     })
     .catch((err) => console.error("Error updating order status:", err));
@@ -187,8 +188,7 @@ function Dashboard() {
 
   const handleArchiveOrder = (orderId) => {
     authenticatedFetch(`/api/admin/orders/${orderId}/archive`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" }
+      method: "PUT"
     })
     .then((data) => {
       if (data && data.success) {
@@ -204,7 +204,6 @@ function Dashboard() {
 
     authenticatedFetch("/api/admin/menu", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newItem)
     })
     .then(() => {
@@ -214,11 +213,32 @@ function Dashboard() {
     .catch((err) => console.error("Error adding item:", err));
   };
 
+  // دالة إرسال التحديث الفعلي للوجبة المعدلة (تحديث السعر أو الصورة أو الاسم)
+  const handleUpdateItem = (e) => {
+    e.preventDefault();
+    if (!editingItem.name || !editingItem.price) return alert("الرجاء ملء اسم الوجبة وسعرها ⚠️");
+
+    // نرسل التعديل للباك إند عبر مسار الـ ID الخاص بالوجبة
+    authenticatedFetch(`/api/admin/menu/${editingItem.id}`, {
+      method: "PUT",
+      body: JSON.stringify({
+        name: editingItem.name,
+        price: editingItem.price,
+        category: editingItem.category,
+        image_url: editingItem.image_url
+      })
+    })
+    .then(() => {
+      triggerMenuFetch();
+      setEditingItem(null); // إغلاق واجهة التعديل المنبثقة بنجاح
+    })
+    .catch((err) => console.error("Error updating menu item:", err));
+  };
+
   const handleToggleAvailable = (id, currentStatus) => {
     const nextStatus = currentStatus === 1 ? 0 : 1;
     authenticatedFetch(`/api/admin/menu/${id}/toggle`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ is_available: nextStatus })
     })
     .then(() => triggerMenuFetch())
@@ -242,7 +262,6 @@ function Dashboard() {
 
     authenticatedFetch("/api/admin/settings", {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(settings)
     })
     .then((data) => {
@@ -258,6 +277,12 @@ function Dashboard() {
       setSettingsLoading(false);
       setSettingsMessage({ text: "❌ حدث خطأ أثناء الاتصال بالسيرفر!", type: "error" });
     });
+  };
+
+  // دالة مساعدة لعرض التصنيف بشكل سليم حتى لو كان هناك تشوه في ترميز الـ DB لعربيتك
+  const formatCategory = (cat) => {
+    if (!cat || cat.includes("??")) return "وجبات رئيسية";
+    return cat;
   };
 
   // --- 1. عرض واجهة تسجيل الدخول إذا لم يتوفر التوكن ---
@@ -376,7 +401,7 @@ function Dashboard() {
                     )}
                   </td>
                   <td style={{ fontWeight: "bold" }}>{item.name}</td>
-                  <td><span style={{ padding: "4px 10px", borderRadius: "6px", background: "rgba(255,255,255,0.05)", fontSize: "14px" }}>{item.category}</span></td>
+                  <td><span style={{ padding: "4px 10px", borderRadius: "6px", background: "rgba(255,255,255,0.05)", fontSize: "14px" }}>{formatCategory(item.category)}</span></td>
                   <td style={{ color: "#34d399", fontWeight: "bold" }}>{item.price} $</td>
                   <td>
                     <button onClick={() => handleToggleAvailable(item.id, item.is_available)} style={{ padding: "6px 14px", borderRadius: "8px", cursor: "pointer", border: "none", fontWeight: "bold", backgroundColor: item.is_available === 1 ? "rgba(16, 185, 129, 0.15)" : "rgba(239, 68, 68, 0.15)", color: item.is_available === 1 ? "#34d399" : "#f87171" }}>
@@ -384,12 +409,56 @@ function Dashboard() {
                     </button>
                   </td>
                   <td>
-                    <button onClick={() => deleteItem(item.id)} style={{ backgroundColor: "rgba(239, 68, 68, 0.15)", color: "#f87171", border: "1px solid rgba(239, 68, 68, 0.2)", padding: "6px 14px", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" }}>حذف</button>
+                    <div style={{ display: "flex", gap: "10px" }}>
+                      {/* زر التعديل المضاف حديثاً بستايل متناسق مع الواجهة */}
+                      <button onClick={() => setEditingItem(item)} style={{ backgroundColor: "rgba(59, 130, 246, 0.15)", color: "#60a5fa", border: "1px solid rgba(59, 130, 246, 0.2)", padding: "6px 14px", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" }}>تعديل</button>
+                      <button onClick={() => deleteItem(item.id)} style={{ backgroundColor: "rgba(239, 68, 68, 0.15)", color: "#f87171", border: "1px solid rgba(239, 68, 68, 0.2)", padding: "6px 14px", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" }}>حذف</button>
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* --- الواجهة المنبثقة (Modal) الخاصة بتعديل الوجبة --- */}
+      {editingItem && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.75)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000, padding: "20px" }}>
+          <form onSubmit={handleUpdateItem} style={{ backgroundColor: "rgba(15, 22, 38, 0.95)", border: "1px solid rgba(59, 130, 246, 0.3)", padding: "30px", borderRadius: "24px", maxWidth: "500px", width: "100%", boxShadow: "0 20px 40px rgba(0,0,0,0.6)", boxSizing: "border-box" }}>
+            <h3 style={{ margin: "0 0 20px 0", color: "#fff", textAlign: "center" }}>🛠️ تعديل بيانات الوجبة</h3>
+            
+            <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
+              <div>
+                <label style={{ display: "block", marginBottom: "5px", fontSize: "14px", color: "#cbd5e1" }}>اسم الوجبة:</label>
+                <input type="text" value={editingItem.name} style={{ width: "100%", padding: "12px", borderRadius: "8px", background: "#070a13", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", boxSizing: "border-box" }} onChange={e => setEditingItem({...editingItem, name: e.target.value})} required />
+              </div>
+              
+              <div>
+                <label style={{ display: "block", marginBottom: "5px", fontSize: "14px", color: "#cbd5e1" }}>السعر ($):</label>
+                <input type="number" step="0.01" value={editingItem.price} style={{ width: "100%", padding: "12px", borderRadius: "8px", background: "#070a13", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", boxSizing: "border-box" }} onChange={e => setEditingItem({...editingItem, price: e.target.value})} required />
+              </div>
+
+              <div>
+                <label style={{ display: "block", marginBottom: "5px", fontSize: "14px", color: "#cbd5e1" }}>رابط صورة الوجبة:</label>
+                <input type="text" value={editingItem.image_url || ""} style={{ width: "100%", padding: "12px", borderRadius: "8px", background: "#070a13", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", boxSizing: "border-box" }} onChange={e => setEditingItem({...editingItem, image_url: e.target.value})} />
+              </div>
+
+              <div>
+                <label style={{ display: "block", marginBottom: "5px", fontSize: "14px", color: "#cbd5e1" }}>التصنيف:</label>
+                <select value={editingItem.category} style={{ width: "100%", padding: "12px", borderRadius: "8px", background: "#070a13", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", boxSizing: "border-box" }} onChange={e => setEditingItem({...editingItem, category: e.target.value})}>
+                  <option value="مأكولات">وجبات رئيسية</option>
+                  <option value="مقبلات">مقبلات</option>
+                  <option value="مشروبات">مشروبات</option>
+                </select>
+              </div>
+
+              <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
+                <button type="submit" style={{ flex: 1, padding: "12px", backgroundColor: "#3b82f6", color: "#fff", border: "none", borderRadius: "8px", fontWeight: "bold", cursor: "pointer" }}>حفظ التعديلات</button>
+                <button type="button" onClick={() => setEditingItem(null)} style={{ flex: 1, padding: "12px", backgroundColor: "#4b5563", color: "#fff", border: "none", borderRadius: "8px", fontWeight: "bold", cursor: "pointer" }}>إلغاء</button>
+              </div>
+            </div>
+          </form>
         </div>
       )}
 
