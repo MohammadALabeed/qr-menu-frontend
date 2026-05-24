@@ -14,7 +14,7 @@ function Sidebar({
   const [isHoveredToggle, setIsHoveredToggle] = useState(false);
   const [showLangDropdown, setShowLangDropdown] = useState(false);
 
-  // إذا كنا على الموبايل، سنعرض شريط سفلي متكامل ومطور
+  // إذا كنا على الموبايل، سنعرض شريط سفلي متكامل ومطور ومحمي من التداخل
   if (isMobile) {
     return (
       <nav
@@ -23,15 +23,16 @@ function Sidebar({
           bottom: 0,
           left: 0,
           right: 0,
-          height: "75px",
-          backgroundColor: "rgba(15, 22, 38, 0.95)",
+          height: "70px",
+          backgroundColor: "rgba(15, 22, 38, 0.98)", /* زيادة العتامة لعدم تداخل الكلام */
           backdropFilter: "blur(12px)",
           borderTop: "1px solid #1e293b",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          zIndex: 100,
-          padding: "0 15px",
+          zIndex: 9999, /* رفع الـ z-index ليكون دائماً فوق المحتوى بشكل صحيح */
+          padding: "0 10px",
+          boxSizing: "border-box",
         }}
       >
         {/* زر المنيو */}
@@ -55,7 +56,7 @@ function Sidebar({
           {lang === "ar" ? "المنيو" : "Menu"}
         </button>
 
-        {/* زر من نحن - تم إضافته للموبايل */}
+        {/* زر من نحن */}
         <button
           onClick={() => setActiveTab("about")}
           style={{
@@ -83,15 +84,16 @@ function Sidebar({
             background: "#10b981",
             border: "none",
             color: "#ffffff",
-            padding: "10px 14px",
-            borderRadius: "18px",
-            fontSize: "13px",
+            padding: "8px 12px",
+            borderRadius: "14px",
+            fontSize: "12px",
             fontWeight: "700",
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
             gap: "5px",
             boxShadow: "0 4px 12px rgba(16, 185, 129, 0.3)",
+            maxHeight: "42px",
           }}
         >
           🛒 ({cartCount})
@@ -117,11 +119,12 @@ function Sidebar({
             <span style={{ fontSize: "18px" }}>🌐</span>
             {lang === "ar" ? "English" : "العربية"}
           </button>
+          
           {showLangDropdown && (
             <div
               style={{
                 position: "absolute",
-                bottom: "55px",
+                bottom: "60px",
                 left: "50%",
                 transform: "translateX(-50%)",
                 backgroundColor: "#0f1626",
@@ -131,9 +134,9 @@ function Sidebar({
                 display: "flex",
                 flexDirection: "column",
                 gap: "4px",
-                zIndex: 200,
-                minWidth: "120px",
-                boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
+                zIndex: 10000,
+                minWidth: "110px",
+                boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
               }}
             >
               <button
@@ -179,7 +182,7 @@ function Sidebar({
     );
   }
 
-  // الـ Sidebar الخاص بالشاشات الكبيرة (الكمبيوتر والتابلت) - يبقى كما هو تماماً
+  // الـ Sidebar الخاص بالشاشات الكبيرة (الكمبيوتر والتابلت) - يبقى كما هو
   return (
     <aside
       style={{
@@ -198,7 +201,6 @@ function Sidebar({
         flexShrink: 0,
       }}
     >
-      {/* زر الفتح والإغلاق التفاعلي */}
       <button
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
         onMouseEnter={() => setIsHoveredToggle(true)}
@@ -232,7 +234,6 @@ function Sidebar({
       </button>
 
       <div>
-        {/* اللوجو والاسم العام للمطعم */}
         <div style={{ 
           display: "flex", 
           alignItems: "center", 
@@ -260,7 +261,6 @@ function Sidebar({
           )}
         </div>
 
-        {/* أزرار التصفح لتبويب المنيو ومعلومات المطعم */}
         <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
           <button
             onClick={() => setActiveTab("menu")}
@@ -294,10 +294,7 @@ function Sidebar({
         </div>
       </div>
 
-      {/* الأزرار السفلية (اللغة والسلة) */}
       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-        
-        {/* زر تغيير اللغة الذكي */}
         <div style={{ position: "relative" }}>
           <button
             onClick={() => setShowLangDropdown(!showLangDropdown)}
@@ -381,7 +378,6 @@ function Sidebar({
           )}
         </div>
 
-        {/* زر السلة */}
         <button
           onClick={() => setIsCartOpen(true)}
           style={{
