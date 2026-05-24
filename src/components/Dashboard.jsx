@@ -19,6 +19,18 @@ function Dashboard() {
   const [newItem, setNewItem] = useState({ name: "", price: "", category: "مأكولات", image_url: "" });
   const [avgRating, setAvgRating] = useState("0");
 
+  // --- حالات إعدادات المتجر العامة الجديدة ---
+  const [settings, setSettings] = useState({
+    restaurant_name: "",
+    about_text: "",
+    logo_url: "",
+    facebook_url: "",
+    instagram_url: "",
+    working_hours: ""
+  });
+  const [settingsLoading, setSettingsLoading] = useState(false);
+  const [settingsMessage, setSettingsMessage] = useState({ text: "", type: "" });
+
   // دالة تشغيل الصوت للتنبيهات
   const playNotificationSound = () => {
     const audio = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
@@ -37,10 +49,9 @@ function Dashboard() {
     })
     .then((res) => res.json())
     .then((data) => {
-      if (data.success) {
+      if (data.success && data.token) {
         localStorage.setItem("admin_token", data.token);
         setToken(data.token);
-        // تفريغ الحقول
         setUsername("");
         setPassword("");
       } else {
@@ -59,70 +70,121 @@ function Dashboard() {
     setToken("");
   };
 
-  // دالة جلب المنيو الخارجية (لإعادة الاستخدام عند الإضافة أو الحذف أو التعديل)
-  const fetchMenuData = () => {
+  // معالج تحديث وتكرار جلب المنيو بعد الإضافة أو الحذف بشكل آمن
+  const triggerMenuFetch = () => {
     if (!token) return;
     fetch(`${API_URL}/api/admin/menu`, {
       headers: { "Authorization": `Bearer ${token}` }
     })
       .then((res) => {
-        if (res.status === 401 || res.status === 403) return handleLogout();
+        if (res.status === 401 || res.status === 403) {
+          handleLogout();
+          throw new Error("Unauthorized");
+        }
         return res.json();
       })
       .then((data) => setMenu(Array.isArray(data) ? data : []))
       .catch((err) => console.error("Error fetching menu:", err));
   };
 
-  // 1. تأثير جلب البيانات الأساسية عند تحديث التوكن
+  // 1. تأثير جلب البيانات الأساسية عند تحديث التوكن (تم إصلاح الاعتماديات بالكامل)
   useEffect(() => {
     if (!token) return;
 
-    // جلب الطلبات
+    // دالة جلب المنيو
+    const fetchMenuData = () => {
+      fetch(`${API_URL}/api/admin/menu`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      })
+        .then((res) => {
+          if (res.status === 401 || res.status === 403) {
+            handleLogout();
+            throw new Error("Unauthorized");
+          }
+          return res.json();
+        })
+        .then((data) => setMenu(Array.isArray(data) ? data : []))
+        .catch((err) => console.error("Error fetching menu:", err));
+    };
+
+    // دالة جلب الإعدادات العامة
+    const fetchSettingsData = () => {
+      fetch(`${API_URL}/api/admin/settings`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      })
+        .then((res) => {
+          if (res.status === 401 || res.status === 403) {
+            handleLogout();
+            throw new Error("Unauthorized");
+          }
+          return res.json();
+        })
+        .then((data) => {
+          if (data) {
+            setSettings({
+              restaurant_name: data.restaurant_name || "",
+              about_text: data.about_text || "",
+              logo_url: data.logo_url || "",
+              facebook_url: data.facebook_url || "",
+              instagram_url: data.instagram_url || "",
+              working_hours: data.working_hours || ""
+            });
+          }
+        })
+        .catch((err) => console.error("Error fetching settings:", err));
+    };
+
+    // جلب الطلبات مستقلًا
     fetch(`${API_URL}/api/admin/orders`, {
       headers: { "Authorization": `Bearer ${token}` }
     })
       .then((res) => {
-        if (res.status === 401 || res.status === 403) return handleLogout();
+        if (res.status === 401 || res.status === 403) {
+          handleLogout();
+          throw new Error("Unauthorized");
+        }
         return res.json();
       })
       .then((data) => setOrders(Array.isArray(data) ? data : []))
       .catch((err) => console.error("Error fetching orders:", err));
 
-    // جلب التقييمات والتعليقات
+    // جلب التقييمات مستقلًا
     fetch(`${API_URL}/api/admin/feedback`, {
       headers: { "Authorization": `Bearer ${token}` }
     })
       .then((res) => {
-        if (res.status === 401 || res.status === 403) return handleLogout();
+        if (res.status === 401 || res.status === 403) {
+          handleLogout();
+          throw new Error("Unauthorized");
+        }
         return res.json();
       })
       .then((data) => setFeedbacks(Array.isArray(data) ? data : []))
       .catch((err) => console.error("Error fetching feedback:", err));
 
-    // جلب متوسط تقييم النجوم
+    // جلب متوسط تقييم النجوم مستقلًا
     fetch(`${API_URL}/api/admin/analytics/rating`, {
       headers: { "Authorization": `Bearer ${token}` }
     })
-      .then((res) => res.json())
+      .then((res) => {
+        if (res.status === 401 || res.status === 403) {
+          handleLogout();
+          throw new Error("Unauthorized");
+        }
+        return res.json();
+      })
       .then((data) => {
-        if (data.success) setAvgRating(data.averageRating);
+        if (data && data.success) setAvgRating(data.averageRating);
       })
       .catch((err) => console.error("Error fetching ratings:", err));
 
-    // جلب بيانات المنيو
-    fetch(`${API_URL}/api/admin/menu`, {
-      headers: { "Authorization": `Bearer ${token}` }
-    })
-      .then((res) => {
-        if (res.status === 401 || res.status === 403) return handleLogout();
-        return res.json();
-      })
-      .then((data) => setMenu(Array.isArray(data) ? data : []))
-      .catch((err) => console.error("Error fetching menu:", err));
+    // تشغيل جلب البيانات
+    fetchMenuData();
+    fetchSettingsData();
 
   }, [token]);
 
-  // 2. تأثير الـ Socket المستقر (يشتغل مرة واحدة فقط مع الـ Clean up)
+  // 2. تأثير الـ Socket المستقر
   useEffect(() => {
     socket.on("new_order_received", (newOrder) => {
       playNotificationSound();
@@ -154,7 +216,11 @@ function Dashboard() {
         "Authorization": `Bearer ${token}`
       },
       body: JSON.stringify({ status: newStatus }),
-    }).catch((err) => console.error("Error:", err));
+    })
+    .then((res) => {
+      if (res.status === 401 || res.status === 403) handleLogout();
+    })
+    .catch((err) => console.error("Error updating order status:", err));
   };
 
   const handleArchiveOrder = (orderId) => {
@@ -165,7 +231,13 @@ function Dashboard() {
         "Authorization": `Bearer ${token}`
       }
     })
-    .then((res) => res.json())
+    .then((res) => {
+      if (res.status === 401 || res.status === 403) {
+        handleLogout();
+        throw new Error("Unauthorized");
+      }
+      return res.json();
+    })
     .then((data) => {
       if (data.success) {
         setOrders((prev) => prev.filter((o) => o.id !== orderId));
@@ -186,12 +258,18 @@ function Dashboard() {
       },
       body: JSON.stringify(newItem)
     })
-    .then((res) => res.json())
+    .then((res) => {
+      if (res.status === 401 || res.status === 403) {
+        handleLogout();
+        throw new Error("Unauthorized");
+      }
+      return res.json();
+    })
     .then(() => {
-      fetchMenuData();
+      triggerMenuFetch();
       setNewItem({ name: "", price: "", category: "مأكولات", image_url: "" });
     })
-    .catch((err) => console.error("Error:", err));
+    .catch((err) => console.error("Error adding item:", err));
   };
 
   const handleToggleAvailable = (id, currentStatus) => {
@@ -204,8 +282,11 @@ function Dashboard() {
       },
       body: JSON.stringify({ is_available: nextStatus })
     })
-    .then(() => fetchMenuData())
-    .catch((err) => console.error("Error:", err));
+    .then((res) => {
+      if (res.status === 401 || res.status === 403) handleLogout();
+      else triggerMenuFetch();
+    })
+    .catch((err) => console.error("Error toggling availability:", err));
   };
 
   const deleteItem = (id) => {
@@ -214,9 +295,48 @@ function Dashboard() {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${token}` }
       })
-      .then(() => fetchMenuData())
-      .catch((err) => console.error("Error:", err));
+      .then((res) => {
+        if (res.status === 401 || res.status === 403) handleLogout();
+        else triggerMenuFetch();
+      })
+      .catch((err) => console.error("Error deleting item:", err));
     }
+  };
+
+  // دالة حفظ الإعدادات العامة الجديدة للسيرفر
+  const handleUpdateSettings = (e) => {
+    e.preventDefault();
+    setSettingsLoading(true);
+    setSettingsMessage({ text: "", type: "" });
+
+    fetch(`${API_URL}/api/admin/settings`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify(settings)
+    })
+    .then((res) => {
+      if (res.status === 401 || res.status === 403) {
+        handleLogout();
+        throw new Error("Unauthorized");
+      }
+      return res.json();
+    })
+    .then((data) => {
+      setSettingsLoading(false);
+      if (data.success) {
+        setSettingsMessage({ text: "🟢 تم تحديث الإعدادات العامة بنجاح واقتدار!", type: "success" });
+      } else {
+        setSettingsMessage({ text: "❌ فشل تحديث الإعدادات!", type: "error" });
+      }
+    })
+    .catch((err) => {
+      console.error("Error updating settings:", err);
+      setSettingsLoading(false);
+      setSettingsMessage({ text: "❌ حدث خطأ أثناء الاتصال بالسيرفر!", type: "error" });
+    });
   };
 
   // --- 1. عرض واجهة تسجيل الدخول إذا لم يتوفر التوكن ---
@@ -244,7 +364,7 @@ function Dashboard() {
       
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: "20px", marginBottom: "30px", flexWrap: "wrap", gap: "15px" }}>
         <h1 style={{ fontSize: "28px", fontWeight: "700", color: "#ffffff", margin: 0 }}>شاشة المطبخ والإدارة 👑</h1>
-        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
           <button onClick={() => setActiveSubTab("live-orders")} style={{ padding: "10px 20px", borderRadius: "12px", cursor: "pointer", fontWeight: "bold", border: activeSubTab === "live-orders" ? "1px solid #10b981" : "1px solid rgba(255,255,255,0.08)", backgroundColor: activeSubTab === "live-orders" ? "rgba(16, 185, 129, 0.15)" : "rgba(255,255,255,0.04)", color: activeSubTab === "live-orders" ? "#34d399" : "#cbd5e1" }}>
             🔥 الطلبات ({orders.filter(o => o.status !== "completed").length})
           </button>
@@ -254,8 +374,10 @@ function Dashboard() {
           <button onClick={() => setActiveSubTab("feedback-log")} style={{ padding: "10px 20px", borderRadius: "12px", cursor: "pointer", fontWeight: "bold", border: activeSubTab === "feedback-log" ? "1px solid #fbbf24" : "1px solid rgba(255,255,255,0.08)", backgroundColor: activeSubTab === "feedback-log" ? "rgba(251, 191, 36, 0.15)" : "rgba(255,255,255,0.04)", color: activeSubTab === "feedback-log" ? "#fbbf24" : "#cbd5e1" }}>
             📣 التقييمات ({feedbacks.length})
           </button>
+          <button onClick={() => setActiveSubTab("general-settings")} style={{ padding: "10px 20px", borderRadius: "12px", cursor: "pointer", fontWeight: "bold", border: activeSubTab === "general-settings" ? "1px solid #a855f7" : "1px solid rgba(255,255,255,0.08)", backgroundColor: activeSubTab === "general-settings" ? "rgba(168, 85, 247, 0.15)" : "rgba(255,255,255,0.04)", color: activeSubTab === "general-settings" ? "#c084fc" : "#cbd5e1" }}>
+            ⚙️ الإعدادات العامة
+          </button>
           
-          {/* زر تسجيل الخروج */}
           <button onClick={handleLogout} style={{ padding: "10px 15px", borderRadius: "12px", cursor: "pointer", fontWeight: "bold", border: "1px solid rgba(239, 68, 68, 0.4)", backgroundColor: "rgba(239, 68, 68, 0.1)", color: "#f87171" }}>
             🚪 خروج
           </button>
@@ -362,6 +484,58 @@ function Dashboard() {
                 طاولة {fb.table_number}: {fb.comment} {fb.rating && `(التقييم: ${fb.rating} ⭐)`}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* 4. تبويب الشاشة الجديدة للإعدادات العامة */}
+      {activeSubTab === "general-settings" && (
+        <div style={{ maxWidth: "700px", margin: "0 auto" }}>
+          <form onSubmit={handleUpdateSettings} style={{ backgroundColor: "rgba(15, 22, 38, 0.8)", border: "1px solid rgba(168, 85, 247, 0.2)", padding: "30px", borderRadius: "24px", boxShadow: "0 15px 30px rgba(0,0,0,0.4)" }}>
+            <h3 style={{ margin: "0 0 25px 0", color: "#fff", fontSize: "22px", borderBottom: "1px solid rgba(255,255,255,0.08)", paddingBottom: "10px" }}>⚙️ إعدادات المتجر والمطعم العامة</h3>
+            
+            {settingsMessage.text && (
+              <div style={{ backgroundColor: settingsMessage.type === "success" ? "rgba(16, 185, 129, 0.15)" : "rgba(239, 68, 68, 0.15)", color: settingsMessage.type === "success" ? "#34d399" : "#f87171", padding: "12px", borderRadius: "10px", marginBottom: "20px", fontSize: "15px", fontWeight: "bold", textAlign: "center" }}>
+                {settingsMessage.text}
+              </div>
+            )}
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+              <div>
+                <label style={{ display: "block", marginBottom: "8px", fontWeight: "bold", color: "#cbd5e1" }}>اسم المطعم:</label>
+                <input type="text" value={settings.restaurant_name} onChange={(e) => setSettings({...settings, restaurant_name: e.target.value})} required style={{ width: "100%", padding: "12px", borderRadius: "10px", background: "#070a13", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: "16px", boxSizing: "border-box" }} />
+              </div>
+
+              <div>
+                <label style={{ display: "block", marginBottom: "8px", fontWeight: "bold", color: "#cbd5e1" }}>نص صفحة من نحن (وصف المطعم):</label>
+                <textarea rows="4" value={settings.about_text} onChange={(e) => setSettings({...settings, about_text: e.target.value})} style={{ width: "100%", padding: "12px", borderRadius: "10px", background: "#070a13", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: "16px", boxSizing: "border-box", resize: "vertical" }}></textarea>
+              </div>
+
+              <div>
+                <label style={{ display: "block", marginBottom: "8px", fontWeight: "bold", color: "#cbd5e1" }}>رابط اللوجو / صورة المطعم الأساسية:</label>
+                <input type="text" value={settings.logo_url} onChange={(e) => setSettings({...settings, logo_url: e.target.value})} placeholder="https://example.com/logo.png" style={{ width: "100%", padding: "12px", borderRadius: "10px", background: "#070a13", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: "16px", boxSizing: "border-box" }} />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }}>
+                <div>
+                  <label style={{ display: "block", marginBottom: "8px", fontWeight: "bold", color: "#cbd5e1" }}>رابط فيسبوك:</label>
+                  <input type="text" value={settings.facebook_url} onChange={(e) => setSettings({...settings, facebook_url: e.target.value})} placeholder="https://facebook.com/..." style={{ width: "100%", padding: "12px", borderRadius: "10px", background: "#070a13", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: "16px", boxSizing: "border-box" }} />
+                </div>
+                <div>
+                  <label style={{ display: "block", marginBottom: "8px", fontWeight: "bold", color: "#cbd5e1" }}>رابط إنستغرام:</label>
+                  <input type="text" value={settings.instagram_url} onChange={(e) => setSettings({...settings, instagram_url: e.target.value})} placeholder="https://instagram.com/..." style={{ width: "100%", padding: "12px", borderRadius: "10px", background: "#070a13", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: "16px", boxSizing: "border-box" }} />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: "block", marginBottom: "8px", fontWeight: "bold", color: "#cbd5e1" }}>ساعات العمل:</label>
+                <input type="text" value={settings.working_hours} onChange={(e) => setSettings({...settings, working_hours: e.target.value})} placeholder="مثال: 12:00 PM - 12:00 AM" style={{ width: "100%", padding: "12px", borderRadius: "10px", background: "#070a13", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: "16px", boxSizing: "border-box" }} />
+              </div>
+
+              <button type="submit" disabled={settingsLoading} style={{ width: "100%", padding: "14px", backgroundColor: "#a855f7", color: "#fff", border: "none", borderRadius: "12px", fontWeight: "bold", fontSize: "16px", cursor: "pointer", marginTop: "10px", boxShadow: "0 10px 20px rgba(168, 85, 247, 0.2)", transition: "all 0.2s" }}>
+                {settingsLoading ? "⏳ جاري حفظ التعديلات..." : "💾 حفظ كافة التعديلات والإعدادات"}
+              </button>
+            </div>
+          </form>
         </div>
       )}
 
