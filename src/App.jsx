@@ -425,10 +425,10 @@ function App() {
         className="main-content-area main-content"
         style={{
           flexGrow: 1,
-          padding: isMobile ? "12px" : "40px",
+          padding: isMobile ? "16px 16px 100px 16px" : "40px", // إضافة padding bottom كافٍ بالموبايل لعدم تداخل العناصر مع المنيو السفلي
           overflowY: "auto",
           overflowX: "hidden",
-          height: isMobile ? "calc(100vh - 85px)" : "100vh",
+          minHeight: isMobile ? "calc(100vh - 70px)" : "100vh", // تبديل الـ height الثابت لـ min-height لتجنب قص المحتوى بالموبايل
           width: "100%",
           boxSizing: "border-box"
         }}
