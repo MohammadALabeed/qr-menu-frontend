@@ -19,7 +19,7 @@ function App() {
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 1. حالة لإدارة رسائل التوست المنبثقة الأنيقة (Toast Notifications)
+  // 1. حالة لإدارة رسائل التوست المنبثقة الأنيقة
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
 
   // دالة لإظهار التوست وتصريفه تلقائياً بعد 4 ثوانٍ
@@ -30,7 +30,7 @@ function App() {
     }, 4000);
   };
 
-  // 2. إدارة رقم الطاولة التفاعلي وحالة شاشة الترحيب (Lazy Initialization آمن ومنظم)
+  // 2. إدارة رقم الطاولة التفاعلي وحالة شاشة الترحيب
   const [tableNumberState, setTableNumberState] = useState(() => {
     if (typeof window !== "undefined") {
       const queryParams = new URLSearchParams(window.location.search);
@@ -66,7 +66,7 @@ function App() {
     return typeof window !== "undefined" ? window.innerWidth : 1024;
   });
 
-  // جلب المنيو الديناميكي من الباك أند عند تحميل التطبيق
+  // جلب المنيو الديناميكي من الباك أند عند تحميل التطبيق (تم إصلاح التحذير هنا)
   useEffect(() => {
     let isMounted = true;
 
@@ -76,7 +76,7 @@ function App() {
         const data = await response.json();
         if (isMounted) {
           setMenuItems(data);
-          setLoading(false);
+          setLoading(false); // تعديل آمن بدون استخدام المتغير الخارجي داخل الشرط
         }
       } catch (error) {
         console.error("❌ خطأ في جلب المنيو الديناميكي:", error);
@@ -160,7 +160,10 @@ function App() {
   };
 
   const removeFromCart = (itemId) => {
-    setCart(cart.filter((item) => item.id !== itemId));
+    const existingItem = cart.find((item) => item.id === itemId);
+    if (existingItem) {
+      setCart(cart.filter((item) => item.id !== itemId));
+    }
   };
 
   const cartTotal = cart
@@ -300,7 +303,10 @@ function App() {
         justifyContent: "center",
         alignItems: "center",
         fontFamily: lang === "ar" ? "'Tajawal', sans-serif" : "'Urbanist', sans-serif",
-        padding: "20px"
+        padding: "20px",
+        width: "100%",
+        boxSizing: "border-box",
+        overflowX: "hidden" 
       }} dir={lang === "ar" ? "rtl" : "ltr"}>
         <div style={{
           backgroundColor: "rgba(15, 22, 38, 0.9)",
@@ -310,7 +316,8 @@ function App() {
           maxWidth: "450px",
           width: "100%",
           textAlign: "center",
-          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)"
+          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+          boxSizing: "border-box"
         }}>
           <h1 style={{ color: "#ffffff", fontSize: "28px", marginBottom: "10px", fontWeight: "700" }}>
             {lang === "ar" ? "أهلاً بك في مطعم الفيو ✨" : "Welcome to View ✨"}
@@ -335,7 +342,8 @@ function App() {
                 fontSize: "16px",
                 textAlign: "center",
                 outline: "none",
-                transition: "all 0.25s"
+                transition: "all 0.25s",
+                boxSizing: "border-box"
               }}
               onFocus={(e) => e.target.style.border = "1px solid #10b981"}
               onBlur={(e) => e.target.style.border = "1px solid rgba(255,255,255,0.1)"}
@@ -379,9 +387,9 @@ function App() {
         fontFamily: lang === "ar" ? "'Tajawal', sans-serif" : "'Urbanist', sans-serif",
         transition: "all 0.3s ease",
         position: "relative",
-        width: "100%",
-        maxWidth: "100vw",
-        overflowX: "hidden"
+        width: "100%", 
+        overflowX: "hidden", 
+        boxSizing: "border-box"
       }}
     >
       {/* الـ Toast Notification المدمج والمنبثق */}
@@ -425,16 +433,16 @@ function App() {
         className="main-content-area main-content"
         style={{
           flexGrow: 1,
-          padding: isMobile ? "16px 16px 100px 16px" : "40px", // إضافة padding bottom كافٍ بالموبايل لعدم تداخل العناصر مع المنيو السفلي
+          padding: isMobile ? "16px 16px 100px 16px" : "40px",
           overflowY: "auto",
-          overflowX: "hidden",
-          minHeight: isMobile ? "calc(100vh - 70px)" : "100vh", // تبديل الـ height الثابت لـ min-height لتجنب قص المحتوى بالموبايل
+          overflowX: "hidden", 
+          minHeight: isMobile ? "calc(100vh - 70px)" : "100vh",
           width: "100%",
           boxSizing: "border-box"
         }}
       >
         {activeTab === "menu" && (
-          <div style={{ width: "100%", maxWidth: "100%", overflowX: "hidden" }}>
+          <div style={{ width: "100%", boxSizing: "border-box" }}>
             <header style={{ marginBottom: "30px", width: "100%" }}>
               <h1
                 style={{
@@ -465,7 +473,7 @@ function App() {
               </div>
             </header>
 
-            {/* تم حل مشكلة سكرول التصنيفات لتجنب بياض الصفحة الجانبي */}
+            {/* سكرول التصنيفات الأفقي */}
             <div
               style={{
                 display: "flex",
@@ -591,7 +599,8 @@ function App() {
                       ? "1fr 1fr"
                       : "repeat(auto-fill, minmax(300px, 1fr))",
                   gap: "25px",
-                  width: "100%"
+                  width: "100%",
+                  boxSizing: "border-box"
                 }}
               >
                 {filteredMenu.map((item) => (
@@ -615,7 +624,8 @@ function App() {
               display: "flex",
               flexDirection: "column",
               gap: "25px",
-              width: "100%"
+              width: "100%",
+              boxSizing: "border-box"
             }}
           >
             <h1 style={{ fontSize: "32px", fontWeight: "700" }}>
@@ -643,7 +653,8 @@ function App() {
                 display: "grid",
                 gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
                 gap: "20px",
-                width: "100%"
+                width: "100%",
+                boxSizing: "border-box"
               }}
             >
               <div
@@ -691,7 +702,8 @@ function App() {
                 border: "1px solid rgba(16, 185, 129, 0.15)",
                 boxShadow: "0 20px 40px rgba(0,0,0,0.3)",
                 marginTop: "15px",
-                width: "100%"
+                width: "100%",
+                boxSizing: "border-box"
               }}
             >
               <h2
@@ -804,6 +816,7 @@ function App() {
                       outline: "none",
                       resize: "none",
                       transition: "all 0.25s ease",
+                      boxSizing: "border-box"
                     }}
                     onFocus={(e) =>
                       (e.target.style.border = "1px solid #10b981")

@@ -1,4 +1,3 @@
-
 function CartSlider({
   isCartOpen,
   setIsCartOpen,
@@ -8,7 +7,7 @@ function CartSlider({
   addToCart,
   removeFromCart,
   cartTotal,
-  sendOrderToBackend, // 🛠️ تم تحديث اسم الخاصية لتتوافق مع الباكيند والمطبخ الفوري
+  sendOrderToBackend, 
   isMobile,
 }) {
   // إذا كانت السلة مغلقة، لا تعرض شيئاً
@@ -32,10 +31,11 @@ function CartSlider({
           position: "fixed",
           top: 0,
           bottom: 0,
-          left: lang === "en" ? "auto" : 0,
-          right: lang === "ar" ? "auto" : 0,
+          // 🛠️ تعديل لضمان التموضع الصحيح ومنع الفراغات الجانبية البيضاء
+          left: isMobile ? 0 : (lang === "en" ? "auto" : 0),
+          right: isMobile ? 0 : (lang === "ar" ? "auto" : 0),
           width: isMobile ? "100%" : "400px",
-          background: "rgba(12, 18, 35, 0.88)",
+          background: "rgba(12, 18, 35, 0.95)", // رفع التباين قليلاً لحجب ما خلفه تماماً
           backdropFilter: "blur(20px)",
           borderLeft:
             lang === "en" ? "1px solid rgba(255,255,255,0.08)" : "none",
@@ -46,7 +46,8 @@ function CartSlider({
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          zIndex: 200,
+          zIndex: 9999, // 🛠️ رفع الترتيب لأعلى قيمة ممكنة لإنهاء مشكلة ظهور الأزرار فوق السلة
+          boxBoxSizing: "border-box",
         }}
       >
         <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
