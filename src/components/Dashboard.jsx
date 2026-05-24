@@ -1,11 +1,17 @@
 import { useState, useEffect } from "react";
 import io from "socket.io-client";
 
-// استخدام المتغير البيئي للرابط بدلاً من localhost الثابت
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 const socket = io(API_URL);
 
 function Dashboard() {
+  // --- حالات نظام تسجيل الدخول ---
+  const [token, setToken] = useState(localStorage.getItem("admin_token") || "");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
+
+  // --- حالات لوحة التحكم الأصلية ---
   const [activeSubTab, setActiveSubTab] = useState("live-orders");
   const [orders, setOrders] = useState([]);
   const [feedbacks, setFeedbacks] = useState([]);
@@ -13,44 +19,111 @@ function Dashboard() {
   const [newItem, setNewItem] = useState({ name: "", price: "", category: "مأكولات", image_url: "" });
   const [avgRating, setAvgRating] = useState("0");
 
-  // دالة الصوت الأصلية
+  // دالة تشغيل الصوت للتنبيهات
   const playNotificationSound = () => {
     const audio = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
     audio.play().catch(() => console.log("تنبيه: يحتاج تفاعل للتشغيل"));
   };
 
-  // جلب المنيو
+  // معالج تسجيل الدخول
+  const handleLogin = (e) => {
+    e.preventDefault();
+    setLoginError("");
+
+    fetch(`${API_URL}/api/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    })
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.success) {
+        localStorage.setItem("admin_token", data.token);
+        setToken(data.token);
+        // تفريغ الحقول
+        setUsername("");
+        setPassword("");
+      } else {
+        setLoginError(data.message || "بيانات الدخول غير صحيحة ❌");
+      }
+    })
+    .catch((err) => {
+      console.error("Login error:", err);
+      setLoginError("حدث خطأ أثناء الاتصال بالسيرفر 🖥️");
+    });
+  };
+
+  // تسجيل الخروج
+  const handleLogout = () => {
+    localStorage.removeItem("admin_token");
+    setToken("");
+  };
+
+  // دالة جلب المنيو الخارجية (لإعادة الاستخدام عند الإضافة أو الحذف أو التعديل)
   const fetchMenuData = () => {
-    fetch(`${API_URL}/api/admin/menu`)
-      .then((res) => res.json())
+    if (!token) return;
+    fetch(`${API_URL}/api/admin/menu`, {
+      headers: { "Authorization": `Bearer ${token}` }
+    })
+      .then((res) => {
+        if (res.status === 401 || res.status === 403) return handleLogout();
+        return res.json();
+      })
       .then((data) => setMenu(Array.isArray(data) ? data : []))
       .catch((err) => console.error("Error fetching menu:", err));
   };
 
-  // جلب تقييم النجوم
-  const fetchAvgRating = () => {
-    fetch(`${API_URL}/api/admin/analytics/rating`)
+  // 1. تأثير جلب البيانات الأساسية عند تحديث التوكن
+  useEffect(() => {
+    if (!token) return;
+
+    // جلب الطلبات
+    fetch(`${API_URL}/api/admin/orders`, {
+      headers: { "Authorization": `Bearer ${token}` }
+    })
+      .then((res) => {
+        if (res.status === 401 || res.status === 403) return handleLogout();
+        return res.json();
+      })
+      .then((data) => setOrders(Array.isArray(data) ? data : []))
+      .catch((err) => console.error("Error fetching orders:", err));
+
+    // جلب التقييمات والتعليقات
+    fetch(`${API_URL}/api/admin/feedback`, {
+      headers: { "Authorization": `Bearer ${token}` }
+    })
+      .then((res) => {
+        if (res.status === 401 || res.status === 403) return handleLogout();
+        return res.json();
+      })
+      .then((data) => setFeedbacks(Array.isArray(data) ? data : []))
+      .catch((err) => console.error("Error fetching feedback:", err));
+
+    // جلب متوسط تقييم النجوم
+    fetch(`${API_URL}/api/admin/analytics/rating`, {
+      headers: { "Authorization": `Bearer ${token}` }
+    })
       .then((res) => res.json())
       .then((data) => {
         if (data.success) setAvgRating(data.averageRating);
       })
       .catch((err) => console.error("Error fetching ratings:", err));
-  };
 
+    // جلب بيانات المنيو
+    fetch(`${API_URL}/api/admin/menu`, {
+      headers: { "Authorization": `Bearer ${token}` }
+    })
+      .then((res) => {
+        if (res.status === 401 || res.status === 403) return handleLogout();
+        return res.json();
+      })
+      .then((data) => setMenu(Array.isArray(data) ? data : []))
+      .catch((err) => console.error("Error fetching menu:", err));
+
+  }, [token]);
+
+  // 2. تأثير الـ Socket المستقر (يشتغل مرة واحدة فقط مع الـ Clean up)
   useEffect(() => {
-    fetch(`${API_URL}/api/admin/orders`)
-      .then((res) => res.json())
-      .then((data) => setOrders(Array.isArray(data) ? data : []))
-      .catch((err) => console.error("Error fetching orders:", err));
-
-    fetch(`${API_URL}/api/admin/feedback`)
-      .then((res) => res.json())
-      .then((data) => setFeedbacks(Array.isArray(data) ? data : []))
-      .catch((err) => console.error("Error fetching feedback:", err));
-
-    fetchMenuData();
-    fetchAvgRating();
-
     socket.on("new_order_received", (newOrder) => {
       playNotificationSound();
       setOrders((prev) => [newOrder, ...prev]);
@@ -76,7 +149,10 @@ function Dashboard() {
   const updateOrderStatus = (orderId, newStatus) => {
     fetch(`${API_URL}/api/admin/orders/${orderId}/status`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
       body: JSON.stringify({ status: newStatus }),
     }).catch((err) => console.error("Error:", err));
   };
@@ -84,7 +160,10 @@ function Dashboard() {
   const handleArchiveOrder = (orderId) => {
     fetch(`${API_URL}/api/admin/orders/${orderId}/archive`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" }
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      }
     })
     .then((res) => res.json())
     .then((data) => {
@@ -101,7 +180,10 @@ function Dashboard() {
 
     fetch(`${API_URL}/api/admin/menu`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
       body: JSON.stringify(newItem)
     })
     .then((res) => res.json())
@@ -116,7 +198,10 @@ function Dashboard() {
     const nextStatus = currentStatus === 1 ? 0 : 1;
     fetch(`${API_URL}/api/admin/menu/${id}/toggle`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
       body: JSON.stringify({ is_available: nextStatus })
     })
     .then(() => fetchMenuData())
@@ -125,18 +210,41 @@ function Dashboard() {
 
   const deleteItem = (id) => {
     if (window.confirm("هل أنت متأكد من حذف هذه الوجبة نهائياً؟ 🚨")) {
-      fetch(`${API_URL}/api/admin/menu/${id}`, { method: "DELETE" })
+      fetch(`${API_URL}/api/admin/menu/${id}`, { 
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${token}` }
+      })
       .then(() => fetchMenuData())
       .catch((err) => console.error("Error:", err));
     }
   };
 
+  // --- 1. عرض واجهة تسجيل الدخول إذا لم يتوفر التوكن ---
+  if (!token) {
+    return (
+      <div dir="rtl" style={{ minHeight: "100vh", backgroundColor: "#070a13", display: "flex", justifyContent: "center", alignItems: "center", fontFamily: "Tajawal, sans-serif" }}>
+        <form onSubmit={handleLogin} style={{ backgroundColor: "rgba(15, 22, 38, 0.9)", border: "1px solid rgba(16, 185, 129, 0.2)", padding: "40px", borderRadius: "24px", maxWidth: "400px", width: "100%", boxShadow: "0 20px 40px rgba(0,0,0,0.5)" }}>
+          <h2 style={{ textAlign: "center", color: "#fff", marginBottom: "10px", marginTop: 0 }}>لوحة تحكم الإدارة 👑</h2>
+          <p style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "25px", textAlign: "center" }}>برجاء إدخال بيانات الأدمن للمتابعة</p>
+          
+          {loginError && <div style={{ backgroundColor: "rgba(239, 68, 68, 0.15)", color: "#f87171", padding: "10px", borderRadius: "10px", marginBottom: "15px", fontSize: "14px", fontWeight: "bold", textAlign: "center" }}>{loginError}</div>}
+          
+          <input type="text" placeholder="اسم المستخدم" value={username} onChange={(e) => setUsername(e.target.value)} required style={{ width: "100%", padding: "14px", borderRadius: "12px", backgroundColor: "#070a13", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: "16px", marginBottom: "15px", boxSizing: "border-box" }} />
+          <input type="password" placeholder="كلمة المرور" value={password} onChange={(e) => setPassword(e.target.value)} required style={{ width: "100%", padding: "14px", borderRadius: "12px", backgroundColor: "#070a13", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: "16px", marginBottom: "25px", boxSizing: "border-box" }} />
+          
+          <button type="submit" style={{ width: "100%", padding: "14px", backgroundColor: "#10b981", color: "#fff", border: "none", borderRadius: "12px", fontWeight: "bold", fontSize: "16px", cursor: "pointer", boxShadow: "0 10px 20px rgba(16, 185, 129, 0.2)" }}>دخول لوحة التحكم 🚀</button>
+        </form>
+      </div>
+    );
+  }
+
+  // --- 2. عرض لوحة التحكم الكاملة إذا كان التوكن موجوداً ---
   return (
     <div dir="rtl" style={{ minHeight: "100vh", backgroundColor: "#070a13", color: "#f3f4f6", padding: "30px", fontFamily: "Tajawal, sans-serif" }}>
       
-      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: "20px", marginBottom: "30px" }}>
+      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: "20px", marginBottom: "30px", flexWrap: "wrap", gap: "15px" }}>
         <h1 style={{ fontSize: "28px", fontWeight: "700", color: "#ffffff", margin: 0 }}>شاشة المطبخ والإدارة 👑</h1>
-        <div style={{ display: "flex", gap: "10px" }}>
+        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
           <button onClick={() => setActiveSubTab("live-orders")} style={{ padding: "10px 20px", borderRadius: "12px", cursor: "pointer", fontWeight: "bold", border: activeSubTab === "live-orders" ? "1px solid #10b981" : "1px solid rgba(255,255,255,0.08)", backgroundColor: activeSubTab === "live-orders" ? "rgba(16, 185, 129, 0.15)" : "rgba(255,255,255,0.04)", color: activeSubTab === "live-orders" ? "#34d399" : "#cbd5e1" }}>
             🔥 الطلبات ({orders.filter(o => o.status !== "completed").length})
           </button>
@@ -145,6 +253,11 @@ function Dashboard() {
           </button>
           <button onClick={() => setActiveSubTab("feedback-log")} style={{ padding: "10px 20px", borderRadius: "12px", cursor: "pointer", fontWeight: "bold", border: activeSubTab === "feedback-log" ? "1px solid #fbbf24" : "1px solid rgba(255,255,255,0.08)", backgroundColor: activeSubTab === "feedback-log" ? "rgba(251, 191, 36, 0.15)" : "rgba(255,255,255,0.04)", color: activeSubTab === "feedback-log" ? "#fbbf24" : "#cbd5e1" }}>
             📣 التقييمات ({feedbacks.length})
+          </button>
+          
+          {/* زر تسجيل الخروج */}
+          <button onClick={handleLogout} style={{ padding: "10px 15px", borderRadius: "12px", cursor: "pointer", fontWeight: "bold", border: "1px solid rgba(239, 68, 68, 0.4)", backgroundColor: "rgba(239, 68, 68, 0.1)", color: "#f87171" }}>
+            🚪 خروج
           </button>
         </div>
       </header>

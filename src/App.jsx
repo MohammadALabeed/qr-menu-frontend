@@ -66,7 +66,7 @@ function App() {
     return typeof window !== "undefined" ? window.innerWidth : 1024;
   });
 
-  // جلب المنيو الديناميكي من الباك أند عند تحميل التطبيق (تم إصلاح التحذير هنا)
+  // جلب المنيو الديناميكي من الباك أند وتنسيقه ليدعم نظام اللغتين والحقول المختلفة بقاعدة البيانات
   useEffect(() => {
     let isMounted = true;
 
@@ -74,12 +74,41 @@ function App() {
       try {
         const response = await fetch("http://localhost:5000/api/menu");
         const data = await response.json();
+        
         if (isMounted) {
-          setMenuItems(data);
-          setLoading(false); // تعديل آمن بدون استخدام المتغير الخارجي داخل الشرط
+          // تنسيق البيانات القادمة من قاعدة البيانات لتطابق هيكل الفرونت إند تماماً
+          const formattedData = data.map((item) => {
+            const parseField = (field, fallback) => {
+              try {
+                return typeof field === 'string' && (field.startsWith('{') || field.startsWith('[')) 
+                  ? JSON.parse(field) 
+                  : field;
+              } catch {
+                return fallback;
+              }
+            };
+
+            const nameObj = parseField(item.name, { ar: item.name, en: item.name });
+            const ingredientsObj = parseField(item.ingredients, { ar: [], en: [] });
+
+            return {
+              id: item.id,
+              name: typeof nameObj === 'object' ? nameObj : { ar: item.name, en: item.name },
+              price: parseFloat(item.price),
+              category: item.category ? item.category.toLowerCase() : "all",
+              ingredients: typeof ingredientsObj === 'object' ? ingredientsObj : { ar: [], en: [] },
+              imageUrl: item.image_url || item.imageUrl || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c", 
+              calories: item.calories || 0,
+              isVegetarian: item.is_vegetarian === 1 || item.is_vegetarian === true || item.isVegetarian === true,
+              isSpicy: item.is_spicy === 1 || item.is_spicy === true || item.isSpicy === true
+            };
+          });
+
+          setMenuItems(formattedData);
+          setLoading(false);
         }
       } catch (error) {
-        console.error("❌ خطأ في جلب المنيو الديناميكي:", error);
+        console.error("❌ خطأ في جلب المنيو الديناميكي ومواءمة البيانات:", error);
         if (isMounted) {
           setLoading(false);
         }
@@ -115,9 +144,10 @@ function App() {
 
   const categories = [
     { id: "all", label: { ar: "الكل 🍽️", en: "All 🍽️" } },
-    { id: "مأكولات", label: { ar: "وجبات رئيسية 🍔", en: "Main Dishes 🍔" } },
-    { id: "مقبلات", label: { ar: "مقبلات 🍟", en: "Appetizers 🍟" } },
-    { id: "مشروبات", label: { ar: "مشروبات 🥤", en: "Drinks 🥤" } },
+    { id: "burgers", label: { ar: "برجر 🍔", en: "Burgers 🍔" } },
+    { id: "pizza", label: { ar: "بيتزا 🍕", en: "Pizza 🍕" } },
+    { id: "appetizers", label: { ar: "مقبلات 🍟", en: "Appetizers 🍟" } },
+    { id: "drinks", label: { ar: "مشروبات 🥤", en: "Drinks 🥤" } },
   ];
 
   const filteredMenu = menuItems.filter((item) => {
