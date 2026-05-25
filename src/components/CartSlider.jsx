@@ -2,9 +2,9 @@ function CartSlider({
   isCartOpen,
   setIsCartOpen,
   lang,
-  cart,
+  cart = [], // قيمة افتراضية مصفوفة لمنع الانهيار
   decreaseQuantity,
-  addToCart,
+  addToCart, // الدالة الممررة
   removeFromCart,
   cartTotal,
   sendOrderToBackend, 
@@ -13,11 +13,15 @@ function CartSlider({
   // إذا كانت السلة مغلقة، لا تعرض شيئاً
   if (!isCartOpen) return null;
 
-  // دالة وسيطة لضمان إرسال الطلب ثم إغلاق السلة
+  // دالة وسيطة لضمان إرسال الطلب ثم إغلاق السلة بأمان وبدون أخطاء
   const handleCheckout = async () => {
-    const isSuccess = await sendOrderToBackend();
-    if (isSuccess) {
-      setIsCartOpen(false); // إغلاق السلة فوراً بعد نجاح الطلب
+    if (typeof sendOrderToBackend === 'function') {
+      const isSuccess = await sendOrderToBackend();
+      if (isSuccess) {
+        setIsCartOpen(false); 
+      }
+    } else {
+      console.error("🚨 دالة sendOrderToBackend غير ممررة بشكل صحيح للسلة!");
     }
   };
 
@@ -134,7 +138,7 @@ function CartSlider({
                 >
                   <img
                     src={item.imageUrl}
-                    alt={item.name[lang]}
+                    alt={item.name && item.name[lang] ? item.name[lang] : ""}
                     style={{
                       width: "54px",
                       height: "54px",
@@ -155,14 +159,14 @@ function CartSlider({
                         textOverflow: "ellipsis"
                       }}
                     >
-                      {item.name[lang]}
+                      {item.name && item.name[lang] ? item.name[lang] : ""}
                     </h4>
                     <span style={{ fontSize: "13px", color: "#a7f3d0", fontWeight: "700" }}>
-                      ${(item.price * item.quantity).toFixed(2)}
+                      ${((item.price || 0) * (item.quantity || 1)).toFixed(2)}
                     </span>
                   </div>
 
-                  {/* أزرار التحكم بالكمية */}
+                  {/* أزرار التحكم بالكمية المحمية */}
                   <div
                     style={{
                       display: "flex",
@@ -175,7 +179,7 @@ function CartSlider({
                     }}
                   >
                     <button
-                      onClick={() => decreaseQuantity(item.id)}
+                      onClick={() => typeof decreaseQuantity === 'function' && decreaseQuantity(item.id)}
                       style={{
                         width: "28px", height: "28px", display: "grid", placeItems: "center",
                         background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)",
@@ -188,7 +192,8 @@ function CartSlider({
                       {item.quantity}
                     </span>
                     <button
-                      onClick={() => addToCart(item)}
+                      // حماية الزر: إذا كانت دالة addToCart غير موجودة، نمنع الانهيار تماماً ولا نطلب دالة مجهولة
+                      onClick={() => typeof addToCart === 'function' ? addToCart(item) : console.warn("addToCart missing")}
                       style={{
                         width: "28px", height: "28px", display: "grid", placeItems: "center",
                         background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)",
@@ -200,7 +205,7 @@ function CartSlider({
                   </div>
 
                   <button
-                    onClick={() => removeFromCart(item.id)}
+                    onClick={() => typeof removeFromCart === 'function' && removeFromCart(item.id)}
                     style={{ background: "none", border: "none", color: "#f87171", cursor: "pointer", fontSize: "18px" }}
                   >
                     🗑️
@@ -219,7 +224,7 @@ function CartSlider({
               <span style={{ color: "#a7f3d0" }}>${cartTotal}</span>
             </div>
             <button
-              onClick={handleCheckout} /* 🛠️ تم التعديل هنا لطلب وإغلاق السلة */
+              onClick={handleCheckout}
               style={{
                 width: "100%",
                 padding: "16px",
