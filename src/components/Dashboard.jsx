@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import io from "socket.io-client";
 
-// ابحث عن السطر القديم الذي عرفت فيه API_URL أو API_BASE_URL واحذفه، وضع مكانه:
+// رابط الـ API المعتمد للسيرفر الجديد
 const API_URL = "https://backend-virid-kappa-61.vercel.app";
 
 function Dashboard() {
@@ -19,7 +19,7 @@ function Dashboard() {
   const [newItem, setNewItem] = useState({ name: "", price: "", category: "مأكولات", image_url: "" });
   const [avgRating, setAvgRating] = useState("0");
 
-  // --- حالة تعديل وجبة معينة (الزر المضاف حديثاً) ---
+  // --- حالة تعديل وجبة معينة ---
   const [editingItem, setEditingItem] = useState(null);
 
   // --- حالات إعدادات المتجر العامة الجديدة ---
@@ -106,13 +106,14 @@ function Dashboard() {
       .catch((err) => console.error("Error fetching menu:", err));
   }, [authenticatedFetch]);
 
-  // 1. تأثير جلب البيانات الأساسية عند تحديث التوكن
-  useEffect(() => {
+  // دالة مجمعة لتحديث كافة البيانات (للاستخدام مع الـ الـ Auto-Refresh الصامت والتشغيل الأولي)
+  const fetchAllDashboardData = useCallback(() => {
     if (!token) return;
 
     // جلب الإعدادات العامة
     authenticatedFetch("/api/admin/settings")
       .then((data) => {
+        if (data && !data.success) return; // تفادي استباق أخطاء البنية
         if (data) {
           setSettings({
             restaurant_name: data.restaurant_name || "",
@@ -126,17 +127,17 @@ function Dashboard() {
       })
       .catch((err) => console.error("Error fetching settings:", err));
 
-    // جلب الطلبات
+    // جلب الطلبات الحية غير المؤرشفة
     authenticatedFetch("/api/admin/orders")
       .then((data) => setOrders(Array.isArray(data) ? data : []))
       .catch((err) => console.error("Error fetching orders:", err));
 
-    // جلب التقييمات
+    // جلب التقييمات والتعليقات
     authenticatedFetch("/api/admin/feedback")
       .then((data) => setFeedbacks(Array.isArray(data) ? data : []))
       .catch((err) => console.error("Error fetching feedback:", err));
 
-    // جلب متوسط التقييم
+    // جلب متوسط التقييم الرقمي للنجوم
     authenticatedFetch("/api/admin/analytics/rating")
       .then((data) => {
         if (data && data.success) setAvgRating(data.averageRating);
@@ -146,19 +147,38 @@ function Dashboard() {
     triggerMenuFetch();
   }, [token, triggerMenuFetch, authenticatedFetch]);
 
-  // 2. تأثير الـ Socket المؤمن والمربوط بالتوكن وحالة تسجيل الدخول
+  // 1. تأثير جلب البيانات الأساسية والـ Auto-Refresh الصامت كل 10 ثوانٍ لحماية استقرار العرض
+  useEffect(() => {
+    if (!token) return;
+
+    // تشغيل الجلب فوراً عند الدخول
+    fetchAllDashboardData();
+
+    // تحديث البيانات صامتاً كل 10 ثوانٍ كخط دفاع أول ضد نوم سيرفرات الـ Serverless
+    const intervalId = setInterval(fetchAllDashboardData, 10000);
+
+    return () => clearInterval(intervalId);
+  }, [token, fetchAllDashboardData]);
+
+  // 2. تأثير الـ Socket المؤمن والمطابق تماماً لأحداث الباك إند
   useEffect(() => {
     if (!token) return;
 
     socketRef.current = io(API_URL, {
-      auth: { token: token }
+      auth: { token: token },
+      transports: ['websocket', 'polling'] // دعم كلي لضمان تخطي جدران حظر الشبكات
     });
 
     const socketInstance = socketRef.current;
 
-    socketInstance.on("new_order_received", (newOrder) => {
+    // مطابقة اسم الحدث مع كود السيرفر (new_order بدلاً من new_order_received)
+    socketInstance.on("new_order", (newOrder) => {
       playNotificationSound();
-      setOrders((prev) => [newOrder, ...prev]);
+      setOrders((prev) => {
+        // فحص تكرار لمنع تداخل الأحداث مع الـ Interval
+        if (prev.some(o => o.id === newOrder.id)) return prev;
+        return [newOrder, ...prev];
+      });
     });
 
     socketInstance.on("order_status_updated", ({ id, status }) => {
@@ -172,7 +192,7 @@ function Dashboard() {
     });
 
     return () => {
-      socketInstance.off("new_order_received");
+      socketInstance.off("new_order");
       socketInstance.off("order_status_updated");
       socketInstance.off("order_archived");
       socketInstance.disconnect();
@@ -183,6 +203,11 @@ function Dashboard() {
     authenticatedFetch(`/api/admin/orders/${orderId}/status`, {
       method: "PUT",
       body: JSON.stringify({ status: newStatus }),
+    })
+    .then(() => {
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
+      );
     })
     .catch((err) => console.error("Error updating order status:", err));
   };
@@ -214,12 +239,10 @@ function Dashboard() {
     .catch((err) => console.error("Error adding item:", err));
   };
 
-  // دالة إرسال التحديث الفعلي للوجبة المعدلة (تحديث السعر أو الصورة أو الاسم)
   const handleUpdateItem = (e) => {
     e.preventDefault();
     if (!editingItem.name || !editingItem.price) return alert("الرجاء ملء اسم الوجبة وسعرها ⚠️");
 
-    // نرسل التعديل للباك إند عبر مسار الـ ID الخاص بالوجبة
     authenticatedFetch(`/api/admin/menu/${editingItem.id}`, {
       method: "PUT",
       body: JSON.stringify({
@@ -231,7 +254,7 @@ function Dashboard() {
     })
     .then(() => {
       triggerMenuFetch();
-      setEditingItem(null); // إغلاق واجهة التعديل المنبثقة بنجاح
+      setEditingItem(null);
     })
     .catch((err) => console.error("Error updating menu item:", err));
   };
@@ -280,7 +303,6 @@ function Dashboard() {
     });
   };
 
-  // دالة مساعدة لعرض التصنيف بشكل سليم حتى لو كان هناك تشوه في ترميز الـ DB لعربيتك
   const formatCategory = (cat) => {
     if (!cat || cat.includes("??")) return "وجبات رئيسية";
     return cat;
@@ -290,7 +312,7 @@ function Dashboard() {
   if (!token) {
     return (
       <div dir="rtl" style={{ minHeight: "100vh", backgroundColor: "#070a13", display: "flex", justifyContent: "center", alignItems: "center", fontFamily: "Tajawal, sans-serif" }}>
-        <form onSubmit={handleLogin} style={{ backgroundColor: "rgba(15, 22, 38, 0.9)", border: "1px solid rgba(16, 185, 129, 0.2)", padding: "40px", borderRadius: "24px", maxWidth: "400px", width: "100%", boxShadow: "0 20px 40px rgba(0,0,0,0.5)" }}>
+        <form onSubmit={handleLogin} style={{ backgroundColor: "rgba(15, 22, 38, 0.9)", border: "1px solid rgba(16, 185, 129, 0.2)", padding: "40px", borderRadius: "24px", maxWidth: "400px", width: "100%", boxShadow: "0 20px 40px rgba(0,0,0,0.5)", boxSizing: "border-box" }}>
           <h2 style={{ textAlign: "center", color: "#fff", marginBottom: "10px", marginTop: 0 }}>لوحة تحكم الإدارة 👑</h2>
           <p style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "25px", textAlign: "center" }}>برجاء إدخال بيانات الأدمن للمتابعة</p>
           
@@ -411,7 +433,6 @@ function Dashboard() {
                   </td>
                   <td>
                     <div style={{ display: "flex", gap: "10px" }}>
-                      {/* زر التعديل المضاف حديثاً بستايل متناسق مع الواجهة */}
                       <button onClick={() => setEditingItem(item)} style={{ backgroundColor: "rgba(59, 130, 246, 0.15)", color: "#60a5fa", border: "1px solid rgba(59, 130, 246, 0.2)", padding: "6px 14px", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" }}>تعديل</button>
                       <button onClick={() => deleteItem(item.id)} style={{ backgroundColor: "rgba(239, 68, 68, 0.15)", color: "#f87171", border: "1px solid rgba(239, 68, 68, 0.2)", padding: "6px 14px", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" }}>حذف</button>
                     </div>
