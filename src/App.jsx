@@ -4,7 +4,6 @@ import CartSlider from "./components/CartSlider";
 import FoodCard from "./components/FoodCard";
 
 // قراءة رابط السيرفر من ملف الـ .env مع رابط احتياطي ذكي لضمان استقرار التطبيق
-// استبدل السطر القديم بهذا السطر المباشر:
 const API_BASE_URL = "https://backend-virid-kappa-61.vercel.app";
 
 function App() {
@@ -257,6 +256,7 @@ function App() {
             : `🛎️ Your order has been sent to the kitchen successfully for Table (${tableNumber})!`,
           "success"
         );
+        // تصفير السلة وإغلاقها بعد نجاح العملية تماماً هنا:
         setCart([]);
         setIsCartOpen(false);
       } else {
