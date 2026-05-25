@@ -472,7 +472,8 @@ function App() {
           overflowX: "hidden", 
           minHeight: isMobile ? "calc(100vh - 70px)" : "100vh",
           width: "100%",
-          boxSizing: "border-box"
+          boxSizing: "border-box",
+          backgroundColor: "#070a13" /* يضمن تغطية المطبخ الخلفية كاملة بنفس اللون السحري للداشبورد */
         }}
       >
         {activeTab === "menu" && (
