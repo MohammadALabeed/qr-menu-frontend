@@ -9,24 +9,40 @@
   padding: 0;
 }
 
-html,
-body,
-#root {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  max-width: 100%;
-  min-height: 100vh; /* يضمن أن الموقع يأخذ كامل ارتفاع الشاشة دائماً */
-  overflow-x: hidden !important; /* يقتل السكرول الجانبي والبياض نهائياً */
-  -webkit-text-size-adjust: 100%; /* يمنع المتصفحات من تضخيم الخطوط فجأة عالموبايل */
-  background-color: #0b0f19; /* تم تعديله للون الداكن ليختفي الإطار الأبيض تماماً في المنيو والداشبورد */
+/* 🔥 الحل الجذري والنهائي لمشكلة الحواف البيضاء على الموبايل واللابتوب */
+html {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+  max-width: 100vw !important;
+  overflow-x: hidden !important;
+  background-color: #070a13 !important;
+  -webkit-text-size-adjust: 100%; /* Safari (prefix مطلوب) */
+  text-size-adjust: 100%;         /* Chrome 54+, Edge 79+, Samsung Internet 6+ */
 }
 
 body {
-  color: #f9fafb; /* تم تعديل لون الخط الافتراضي ليتناسب مع الخلفية الداكنة */
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+  max-width: 100vw !important;
+  min-height: 100vh;
+  overflow-x: hidden !important;
+  background-color: #070a13 !important;
+  color: #f9fafb;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   transition: background-color 0.3s ease, color 0.3s ease;
   position: relative;
+}
+
+#root {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+  max-width: 100vw !important;
+  min-height: 100vh;
+  overflow-x: hidden !important;
+  background-color: #070a13 !important;
 }
 
 /* حركة ناعمة للـ Modals والأزرار */

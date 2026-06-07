@@ -311,7 +311,7 @@ function Dashboard() {
   // --- 1. عرض واجهة تسجيل الدخول إذا لم يتوفر التوكن ---
   if (!token) {
     return (
-      <div dir="rtl" style={{ minHeight: "100vh", backgroundColor: "#070a13", display: "flex", justifyContent: "center", alignItems: "center", fontFamily: "Tajawal, sans-serif" }}>
+      <div dir="rtl" style={{ minHeight: "100vh", width: "100%", maxWidth: "100vw", overflowX: "hidden", backgroundColor: "#070a13", display: "flex", justifyContent: "center", alignItems: "center", fontFamily: "Tajawal, sans-serif", padding: "20px", boxSizing: "border-box" }}>
         <form onSubmit={handleLogin} style={{ backgroundColor: "rgba(15, 22, 38, 0.9)", border: "1px solid rgba(16, 185, 129, 0.2)", padding: "40px", borderRadius: "24px", maxWidth: "400px", width: "100%", boxShadow: "0 20px 40px rgba(0,0,0,0.5)", boxSizing: "border-box" }}>
           <h2 style={{ textAlign: "center", color: "#fff", marginBottom: "10px", marginTop: 0 }}>لوحة تحكم الإدارة 👑</h2>
           <p style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "25px", textAlign: "center" }}>برجاء إدخال بيانات الأدمن للمتابعة</p>
@@ -329,7 +329,7 @@ function Dashboard() {
 
   // --- 2. عرض لوحة التحكم الكاملة إذا كان التوكن موجوداً ---
   return (
-    <div dir="rtl" style={{ minHeight: "100vh", backgroundColor: "#070a13", color: "#f3f4f6", padding: "30px", fontFamily: "Tajawal, sans-serif" }}>
+    <div dir="rtl" style={{ minHeight: "100vh", width: "100%", maxWidth: "100vw", overflowX: "hidden", backgroundColor: "#070a13", color: "#f3f4f6", padding: "clamp(15px, 3vw, 30px)", fontFamily: "Tajawal, sans-serif", boxSizing: "border-box" }}>
       
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: "20px", marginBottom: "30px", flexWrap: "wrap", gap: "15px" }}>
         <h1 style={{ fontSize: "28px", fontWeight: "700", color: "#ffffff", margin: 0 }}>شاشة المطبخ والإدارة 👑</h1>
@@ -402,7 +402,9 @@ function Dashboard() {
             </div>
           </form>
 
-          <table style={{ width: "100%", borderCollapse: "collapse", backgroundColor: "rgba(15, 22, 38, 0.7)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "20px", overflow: "hidden" }}>
+          {/* Wrapper لمنع الجدول من تجاوز الشاشة على الموبايل */}
+          <div style={{ width: "100%", overflowX: "auto", borderRadius: "20px", border: "1px solid rgba(255,255,255,0.06)" }}>
+          <table style={{ width: "100%", minWidth: "600px", borderCollapse: "collapse", backgroundColor: "rgba(15, 22, 38, 0.7)" }}>
             <thead>
               <tr style={{ background: "rgba(255,255,255,0.02)", borderBottom: "1px solid rgba(255,255,255,0.06)", textAlign: "right" }}>
                 <th style={{ padding: "15px" }}>الصورة</th>
@@ -441,6 +443,7 @@ function Dashboard() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
@@ -527,7 +530,7 @@ function Dashboard() {
                 <input type="text" value={settings.logo_url} onChange={(e) => setSettings({...settings, logo_url: e.target.value})} placeholder="https://example.com/logo.png" style={{ width: "100%", padding: "12px", borderRadius: "10px", background: "#070a13", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: "16px", boxSizing: "border-box" }} />
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "15px" }}>
                 <div>
                   <label style={{ display: "block", marginBottom: "8px", fontWeight: "bold", color: "#cbd5e1" }}>رابط فيسبوك:</label>
                   <input type="text" value={settings.facebook_url} onChange={(e) => setSettings({...settings, facebook_url: e.target.value})} placeholder="https://facebook.com/..." style={{ width: "100%", padding: "12px", borderRadius: "10px", background: "#070a13", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", fontSize: "16px", boxSizing: "border-box" }} />
