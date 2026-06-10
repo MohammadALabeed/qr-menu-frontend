@@ -23,7 +23,11 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   // 1. حالة لإدارة رسائل التوست المنبثقة الأنيقة
-  const [toast, setToast] = useState({ show: false, message: "", type: "success" });
+  const [toast, setToast] = useState({
+    show: false,
+    message: "",
+    type: "success",
+  });
 
   // دالة لإظهار التوست وتصريفه تلقائياً بعد 4 ثوانٍ
   const showToast = (message, type = "success") => {
@@ -43,7 +47,11 @@ function App() {
         sessionStorage.setItem("table_number", urlTable);
         return urlTable;
       }
-      return localStorage.getItem("qr_table_number") || sessionStorage.getItem("table_number") || "";
+      return (
+        localStorage.getItem("qr_table_number") ||
+        sessionStorage.getItem("table_number") ||
+        ""
+      );
     }
     return "";
   });
@@ -77,33 +85,55 @@ function App() {
       try {
         const response = await fetch(`${API_BASE_URL}/api/menu`);
         const data = await response.json();
-        
+
         if (isMounted) {
           // تنسيق البيانات القادمة من قاعدة البيانات لتطابق هيكل الفرونت إند تماماً
           const formattedData = data.map((item) => {
             const parseField = (field, fallback) => {
               try {
-                return typeof field === 'string' && (field.startsWith('{') || field.startsWith('[')) 
-                  ? JSON.parse(field) 
+                return typeof field === "string" &&
+                  (field.startsWith("{") || field.startsWith("["))
+                  ? JSON.parse(field)
                   : field;
               } catch {
                 return fallback;
               }
             };
 
-            const nameObj = parseField(item.name, { ar: item.name, en: item.name });
-            const ingredientsObj = parseField(item.ingredients, { ar: [], en: [] });
+            const nameObj = parseField(item.name, {
+              ar: item.name,
+              en: item.name,
+            });
+            const ingredientsObj = parseField(item.ingredients, {
+              ar: [],
+              en: [],
+            });
 
             return {
               id: item.id,
-              name: typeof nameObj === 'object' ? nameObj : { ar: item.name, en: item.name },
+              name:
+                typeof nameObj === "object"
+                  ? nameObj
+                  : { ar: item.name, en: item.name },
               price: parseFloat(item.price),
               category: item.category ? item.category.toLowerCase() : "all",
-              ingredients: typeof ingredientsObj === 'object' ? ingredientsObj : { ar: [], en: [] },
-              imageUrl: item.image_url || item.imageUrl || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c", 
+              ingredients:
+                typeof ingredientsObj === "object"
+                  ? ingredientsObj
+                  : { ar: [], en: [] },
+              imageUrl:
+                item.image_url ||
+                item.imageUrl ||
+                "https://images.unsplash.com/photo-1546069901-ba9599a7e63c",
               calories: item.calories || 0,
-              isVegetarian: item.is_vegetarian === 1 || item.is_vegetarian === true || item.isVegetarian === true,
-              isSpicy: item.is_spicy === 1 || item.is_spicy === true || item.isSpicy === true
+              isVegetarian:
+                item.is_vegetarian === 1 ||
+                item.is_vegetarian === true ||
+                item.isVegetarian === true,
+              isSpicy:
+                item.is_spicy === 1 ||
+                item.is_spicy === true ||
+                item.isSpicy === true,
             };
           });
 
@@ -111,7 +141,10 @@ function App() {
           setLoading(false);
         }
       } catch (error) {
-        console.error("❌ خطأ في جلب المنيو الديناميكي ومواءمة البيانات:", error);
+        console.error(
+          "❌ خطأ في جلب المنيو الديناميكي ومواءمة البيانات:",
+          error,
+        );
         if (isMounted) {
           setLoading(false);
         }
@@ -174,13 +207,16 @@ function App() {
     } else {
       setCart([...cart, { ...item, quantity: 1 }]);
     }
-    showToast(lang === "ar" ? "📥 تم إضافة الوجبة للسلة" : "📥 Item added to cart", "success");
+    showToast(
+      lang === "ar" ? "📥 تم إضافة الوجبة للسلة" : "📥 Item added to cart",
+      "success",
+    );
   };
 
   const decreaseQuantity = (itemId) => {
     const existingItem = cart.find((item) => item.id === itemId);
     if (!existingItem) return;
-    
+
     if (existingItem.quantity === 1) {
       setCart(cart.filter((item) => item.id !== itemId));
     } else {
@@ -214,14 +250,21 @@ function App() {
     localStorage.setItem("qr_table_number", finalTable);
     sessionStorage.setItem("table_number", finalTable);
     setTableNumberState(finalTable);
-    showToast(lang === "ar" ? `👑 أهلاً بك! تم تثبيت طاولة رقم ${finalTable}` : `👑 Welcome! Table ${finalTable} set.`, "success");
+    showToast(
+      lang === "ar"
+        ? `👑 أهلاً بك! تم تثبيت طاولة رقم ${finalTable}`
+        : `👑 Welcome! Table ${finalTable} set.`,
+      "success",
+    );
   };
 
   const sendOrderToBackend = async () => {
     if (cart.length === 0) {
       showToast(
-        lang === "ar" ? "⚠️ يجب اختيار وجبة واحدة على الأقل قبل إرسال الطلب!" : "⚠️ You must select at least one item before ordering!", 
-        "error"
+        lang === "ar"
+          ? "⚠️ يجب اختيار وجبة واحدة على الأقل قبل إرسال الطلب!"
+          : "⚠️ You must select at least one item before ordering!",
+        "error",
       );
       return;
     }
@@ -234,8 +277,8 @@ function App() {
       items: cart.map((item) => ({
         id: item.id,
         quantity: item.quantity,
-        price: item.price, 
-      }))
+        price: item.price,
+      })),
     };
 
     try {
@@ -254,18 +297,20 @@ function App() {
           lang === "ar"
             ? `🛎️ تم إرسال طلبك للمطبخ بنجاح! طاولة رقم (${tableNumber}) قيد التحضير الفوري.`
             : `🛎️ Your order has been sent to the kitchen successfully for Table (${tableNumber})!`,
-          "success"
+          "success",
         );
         // تصفير السلة وإغلاقها بعد نجاح العملية تماماً هنا:
         setCart([]);
         setIsCartOpen(false);
+        return true;
       } else {
         showToast(
           lang === "ar"
             ? `❌ فشل إرسال الطلب: ${data.message}`
             : `❌ Failed to send order: ${data.message}`,
-          "error"
+          "error",
         );
+        return false;
       }
     } catch (error) {
       console.error("Error sending order to backend:", error);
@@ -273,14 +318,15 @@ function App() {
         lang === "ar"
           ? "❌ حدث خطأ أثناء الاتصال بالسيرفر. تأكد أن الباك أند شغال!"
           : "❌ Server connection error. Make sure backend is running!",
-        "error"
+        "error",
       );
+      return false;
     }
   };
 
   const sendFeedbackToBackend = async (e) => {
     e.preventDefault();
-    
+
     const tableNumber = getTableNumber();
 
     const feedbackData = {
@@ -305,7 +351,7 @@ function App() {
           lang === "ar"
             ? "❤️ تم إرسال تقييمك ورأيك للإدارة بنجاح! شكراً لك."
             : "❤️ Thank you! Your feedback has been submitted successfully.",
-          "success"
+          "success",
         );
         setFeedbackText("");
         setRating(5);
@@ -314,7 +360,7 @@ function App() {
           lang === "ar"
             ? `❌ فشل الإرسال: ${data.message}`
             : `❌ Failed to submit feedback: ${data.message}`,
-          "error"
+          "error",
         );
       }
     } catch (error) {
@@ -323,43 +369,63 @@ function App() {
         lang === "ar"
           ? "❌ حدث خطأ أثناء الاتصال بالسيرفر. تأكد أن الباك أند شغال!"
           : "❌ Server connection error. Make sure backend is running!",
-        "error"
+        "error",
       );
     }
   };
 
   if (!tableNumberState) {
     return (
-      <div style={{
-        minHeight: "100vh",
-        backgroundColor: "#070a13",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        fontFamily: lang === "ar" ? "'Tajawal', sans-serif" : "'Urbanist', sans-serif",
-        padding: "20px",
-        width: "100%",
-        boxSizing: "border-box",
-        overflowX: "hidden" 
-      }} dir={lang === "ar" ? "rtl" : "ltr"}>
-        <div style={{
-          backgroundColor: "rgba(15, 22, 38, 0.9)",
-          border: "1px solid rgba(16, 185, 129, 0.2)",
-          padding: "40px 30px",
-          borderRadius: "28px",
-          maxWidth: "450px",
+      <div
+        style={{
+          minHeight: "100vh",
+          backgroundColor: "#070a13",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          fontFamily:
+            lang === "ar" ? "'Tajawal', sans-serif" : "'Urbanist', sans-serif",
+          padding: "20px",
           width: "100%",
-          textAlign: "center",
-          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
-          boxSizing: "border-box"
-        }}>
-          <h1 style={{ color: "#ffffff", fontSize: "28px", marginBottom: "10px", fontWeight: "700" }}>
+          boxSizing: "border-box",
+          overflowX: "hidden",
+        }}
+        dir={lang === "ar" ? "rtl" : "ltr"}
+      >
+        <div
+          style={{
+            backgroundColor: "rgba(15, 22, 38, 0.9)",
+            border: "1px solid rgba(16, 185, 129, 0.2)",
+            padding: "40px 30px",
+            borderRadius: "28px",
+            maxWidth: "450px",
+            width: "100%",
+            textAlign: "center",
+            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+            boxSizing: "border-box",
+          }}
+        >
+          <h1
+            style={{
+              color: "#ffffff",
+              fontSize: "28px",
+              marginBottom: "10px",
+              fontWeight: "700",
+            }}
+          >
             {lang === "ar" ? "أهلاً بك في مطعم الفيو ✨" : "Welcome to View ✨"}
           </h1>
-          <p style={{ color: "#94a3b8", fontSize: "15px", marginBottom: "30px" }}>
-            {lang === "ar" ? "الرجاء إدخال رقم الطاولة الخاصة بك لبدء استكشاف المنيو والطلب" : "Please enter your table number to explore the menu and order"}
+          <p
+            style={{ color: "#94a3b8", fontSize: "15px", marginBottom: "30px" }}
+          >
+            {lang === "ar"
+              ? "الرجاء إدخال رقم الطاولة الخاصة بك لبدء استكشاف المنيو والطلب"
+              : "Please enter your table number to explore the menu and order"}
           </p>
-          <form onSubmit={handleSaveTable} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          <form
+            onSubmit={handleSaveTable}
+            style={{ display: "flex", flexDirection: "column", gap: "16px" }}
+          >
             <input
               type="number"
               placeholder={lang === "ar" ? "رقم الطاولة..." : "Table Number..."}
@@ -377,29 +443,41 @@ function App() {
                 textAlign: "center",
                 outline: "none",
                 transition: "all 0.25s",
-                boxSizing: "border-box"
+                boxSizing: "border-box",
               }}
-              onFocus={(e) => e.target.style.border = "1px solid #10b981"}
-              onBlur={(e) => e.target.style.border = "1px solid rgba(255,255,255,0.1)"}
+              onFocus={(e) => (e.target.style.border = "1px solid #10b981")}
+              onBlur={(e) =>
+                (e.target.style.border = "1px solid rgba(255,255,255,0.1)")
+              }
             />
-            <button type="submit" style={{
-              padding: "14px",
-              backgroundColor: "#10b981",
-              color: "#ffffff",
-              border: "none",
-              borderRadius: "16px",
-              fontWeight: "700",
-              fontSize: "16px",
-              cursor: "pointer",
-              boxShadow: "0 10px 20px rgba(16, 185, 129, 0.25)"
-            }}>
+            <button
+              type="submit"
+              style={{
+                padding: "14px",
+                backgroundColor: "#10b981",
+                color: "#ffffff",
+                border: "none",
+                borderRadius: "16px",
+                fontWeight: "700",
+                fontSize: "16px",
+                cursor: "pointer",
+                boxShadow: "0 10px 20px rgba(16, 185, 129, 0.25)",
+              }}
+            >
               {lang === "ar" ? "دخول واستكشاف المنيو 🚀" : "Enter Menu 🚀"}
             </button>
           </form>
-          <button 
+          <button
             type="button"
             onClick={() => setLang(lang === "ar" ? "en" : "ar")}
-            style={{ backgroundColor: "transparent", border: "none", color: "#34d399", marginTop: "20px", cursor: "pointer", fontWeight: "600" }}
+            style={{
+              backgroundColor: "transparent",
+              border: "none",
+              color: "#34d399",
+              marginTop: "20px",
+              cursor: "pointer",
+              fontWeight: "600",
+            }}
           >
             {lang === "ar" ? "English 🌐" : "العربية 🌐"}
           </button>
@@ -418,35 +496,44 @@ function App() {
         color: "#f3f4f6",
         display: "flex",
         flexDirection: isMobile ? "column" : "row",
-        fontFamily: lang === "ar" ? "'Tajawal', sans-serif" : "'Urbanist', sans-serif",
+        fontFamily:
+          lang === "ar" ? "'Tajawal', sans-serif" : "'Urbanist', sans-serif",
         transition: "all 0.3s ease",
         position: "relative",
-        width: "100%", 
-        overflowX: "hidden", 
-        boxSizing: "border-box"
+        width: "100%",
+        overflowX: "hidden",
+        boxSizing: "border-box",
       }}
     >
       {/* الـ Toast Notification المدمج والمنبثق */}
       {toast.show && (
-        <div style={{
-          position: "fixed",
-          top: "20px",
-          left: "50%",
-          transform: "translateX(-50%)",
-          zIndex: 9999,
-          backgroundColor: toast.type === "success" ? "rgba(16, 185, 129, 0.95)" : "rgba(239, 68, 68, 0.95)",
-          color: "#ffffff",
-          padding: "14px 28px",
-          borderRadius: "16px",
-          boxShadow: "0 20px 40px rgba(0,0,0,0.4)",
-          fontWeight: "700",
-          fontSize: "14px",
-          display: "flex",
-          alignItems: "center",
-          gap: "10px",
-          backdropFilter: "blur(8px)",
-          border: toast.type === "success" ? "1px solid #34d399" : "1px solid #f87171"
-        }}>
+        <div
+          style={{
+            position: "fixed",
+            top: "20px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 9999,
+            backgroundColor:
+              toast.type === "success"
+                ? "rgba(16, 185, 129, 0.95)"
+                : "rgba(239, 68, 68, 0.95)",
+            color: "#ffffff",
+            padding: "14px 28px",
+            borderRadius: "16px",
+            boxShadow: "0 20px 40px rgba(0,0,0,0.4)",
+            fontWeight: "700",
+            fontSize: "14px",
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            backdropFilter: "blur(8px)",
+            border:
+              toast.type === "success"
+                ? "1px solid #34d399"
+                : "1px solid #f87171",
+          }}
+        >
           {toast.message}
         </div>
       )}
@@ -469,11 +556,12 @@ function App() {
           flexGrow: 1,
           padding: isMobile ? "16px 16px 100px 16px" : "40px",
           overflowY: "auto",
-          overflowX: "hidden", 
+          overflowX: "hidden",
           minHeight: isMobile ? "calc(100vh - 70px)" : "100vh",
           width: "100%",
           boxSizing: "border-box",
-          backgroundColor: "#070a13" /* يضمن تغطية المطبخ الخلفية كاملة بنفس اللون السحري للداشبورد */
+          backgroundColor:
+            "#070a13" /* يضمن تغطية المطبخ الخلفية كاملة بنفس اللون السحري للداشبورد */,
         }}
       >
         {activeTab === "menu" && (
@@ -493,18 +581,22 @@ function App() {
                   ? "استكشف نكهاتنا الملكية 🍽️"
                   : "Explore Our Flavors 🍽️"}
               </h1>
-              <div style={{
-                display: "inline-block",
-                marginTop: "10px",
-                padding: "6px 14px",
-                backgroundColor: "rgba(16, 185, 129, 0.15)",
-                border: "1px solid rgba(16, 185, 129, 0.3)",
-                borderRadius: "8px",
-                fontSize: "13px",
-                fontWeight: "bold",
-                color: "#34d399"
-              }}>
-                {lang === "ar" ? `📍 طاولة رقم: ${getTableNumber()}` : `📍 Table: ${getTableNumber()}`}
+              <div
+                style={{
+                  display: "inline-block",
+                  marginTop: "10px",
+                  padding: "6px 14px",
+                  backgroundColor: "rgba(16, 185, 129, 0.15)",
+                  border: "1px solid rgba(16, 185, 129, 0.3)",
+                  borderRadius: "8px",
+                  fontSize: "13px",
+                  fontWeight: "bold",
+                  color: "#34d399",
+                }}
+              >
+                {lang === "ar"
+                  ? `📍 طاولة رقم: ${getTableNumber()}`
+                  : `📍 Table: ${getTableNumber()}`}
               </div>
             </header>
 
@@ -520,7 +612,7 @@ function App() {
                 scrollbarWidth: "none",
                 msOverflowStyle: "none",
                 maxWidth: "100%",
-                boxSizing: "border-box"
+                boxSizing: "border-box",
               }}
             >
               {categories.map((cat) => (
@@ -616,11 +708,15 @@ function App() {
             </div>
 
             {loading ? (
-              <p style={{ textAlign: "center", color: "#666", padding: "40px" }}>
+              <p
+                style={{ textAlign: "center", color: "#666", padding: "40px" }}
+              >
                 جاري تحميل نكهاتنا الفاخرة من قاعدة البيانات... 🕒
               </p>
             ) : filteredMenu.length === 0 ? (
-              <p style={{ textAlign: "center", color: "#666", padding: "40px" }}>
+              <p
+                style={{ textAlign: "center", color: "#666", padding: "40px" }}
+              >
                 لا توجد وجبات في هذا التصنيف حالياً.
               </p>
             ) : (
@@ -635,7 +731,7 @@ function App() {
                       : "repeat(auto-fill, minmax(300px, 1fr))",
                   gap: "25px",
                   width: "100%",
-                  boxSizing: "border-box"
+                  boxSizing: "border-box",
                 }}
               >
                 {filteredMenu.map((item) => (
@@ -660,7 +756,7 @@ function App() {
               flexDirection: "column",
               gap: "25px",
               width: "100%",
-              boxSizing: "border-box"
+              boxSizing: "border-box",
             }}
           >
             <h1 style={{ fontSize: "32px", fontWeight: "700" }}>
@@ -689,7 +785,7 @@ function App() {
                 gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
                 gap: "20px",
                 width: "100%",
-                boxSizing: "border-box"
+                boxSizing: "border-box",
               }}
             >
               <div
@@ -738,7 +834,7 @@ function App() {
                 boxShadow: "0 20px 40px rgba(0,0,0,0.3)",
                 marginTop: "15px",
                 width: "100%",
-                boxSizing: "border-box"
+                boxSizing: "border-box",
               }}
             >
               <h2
@@ -851,7 +947,7 @@ function App() {
                       outline: "none",
                       resize: "none",
                       transition: "all 0.25s ease",
-                      boxSizing: "border-box"
+                      boxSizing: "border-box",
                     }}
                     onFocus={(e) =>
                       (e.target.style.border = "1px solid #10b981")
@@ -898,7 +994,7 @@ function App() {
         addToCart={addToCart}
         removeFromCart={removeFromCart}
         cartTotal={cartTotal}
-        sendOrderToWhatsApp={sendOrderToBackend} 
+        sendOrderToBackend={sendOrderToBackend}
         isMobile={isMobile}
       />
     </div>
