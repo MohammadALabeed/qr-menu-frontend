@@ -23,6 +23,15 @@ function App() {
 
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [settings, setSettings] = useState({
+    restaurant_name: "مطعم الفيو",
+    about_text:
+      "تأسس مطعم الفيو لتقديم نكهات برجر غنية تُطهى بعناية تامة على اللهب المباشر مع أجواء بحرية ساحرة وراقية.",
+    logo_url: "",
+    facebook_url: "",
+    instagram_url: "",
+    working_hours: "12:00 PM - 12:00 AM",
+  });
 
   // 1. حالة لإدارة رسائل التوست المنبثقة الأنيقة
   const [toast, setToast] = useState({
@@ -154,6 +163,37 @@ function App() {
     };
 
     fetchMenu();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchSettings = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/settings`);
+        const data = await response.json();
+        if (!isMounted) return;
+
+        setSettings({
+          restaurant_name: data.restaurant_name || "مطعم الفيو",
+          about_text:
+            data.about_text ||
+            "تأسس مطعم الفيو لتقديم نكهات برجر غنية تُطهى بعناية تامة على اللهب المباشر مع أجواء بحرية ساحرة وراقية.",
+          logo_url: data.logo_url || "",
+          facebook_url: data.facebook_url || "",
+          instagram_url: data.instagram_url || "",
+          working_hours: data.working_hours || "12:00 PM - 12:00 AM",
+        });
+      } catch (error) {
+        console.error("Error fetching restaurant settings:", error);
+      }
+    };
+
+    fetchSettings();
 
     return () => {
       isMounted = false;
@@ -419,14 +459,34 @@ function App() {
               fontWeight: "700",
             }}
           >
-            {lang === "ar" ? "أهلاً بك في مطعم الفيو ✨" : "Welcome to View ✨"}
+            {settings.restaurant_name ||
+              (lang === "ar"
+                ? "أهلاً بك في مطعم الفيو ✨"
+                : "Welcome to View ✨")}
           </h1>
+          {settings.logo_url && (
+            <img
+              src={settings.logo_url}
+              alt="Restaurant Logo"
+              style={{
+                width: "100px",
+                maxWidth: "100%",
+                height: "auto",
+                borderRadius: "18px",
+                margin: "10px auto 20px",
+                display: "block",
+                boxShadow: "0 18px 40px rgba(16,185,129,0.18)",
+                objectFit: "cover",
+              }}
+            />
+          )}
           <p
             style={{ color: "#94a3b8", fontSize: "15px", marginBottom: "30px" }}
           >
-            {lang === "ar"
-              ? "الرجاء إدخال رقم الطاولة الخاصة بك لبدء استكشاف المنيو والطلب"
-              : "Please enter your table number to explore the menu and order"}
+            {settings.about_text ||
+              (lang === "ar"
+                ? "الرجاء إدخال رقم الطاولة الخاصة بك لبدء استكشاف المنيو والطلب"
+                : "Please enter your table number to explore the menu and order")}
           </p>
           <form
             onSubmit={handleSaveTable}
@@ -781,10 +841,57 @@ function App() {
             >
               <p style={{ margin: 0 }}>
                 {lang === "ar"
-                  ? "تأسس مطعم 'الفيو' لتقديم نكهات برجر غنية تُطهى بعناية تامة على اللهب المباشر مع أجواء بحرية ساحرة وراقية."
-                  : "View merged fire-grilled burger classics with serene waterfront energy."}
+                  ? settings.about_text ||
+                    "تأسس مطعم 'الفيو' لتقديم نكهات برجر غنية تُطهى بعناية تامة على اللهب المباشر مع أجواء بحرية ساحرة وراقية."
+                  : settings.about_text ||
+                    "View merged fire-grilled burger classics with serene waterfront energy."}
               </p>
             </section>
+            {(settings.facebook_url || settings.instagram_url) && (
+              <div
+                style={{
+                  display: "flex",
+                  gap: "12px",
+                  flexWrap: "wrap",
+                  marginTop: "18px",
+                }}
+              >
+                {settings.facebook_url && (
+                  <a
+                    href={settings.facebook_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      padding: "12px 18px",
+                      borderRadius: "14px",
+                      backgroundColor: "rgba(59, 130, 246, 0.18)",
+                      color: "#bfdbfe",
+                      textDecoration: "none",
+                      fontWeight: "700",
+                    }}
+                  >
+                    Facebook
+                  </a>
+                )}
+                {settings.instagram_url && (
+                  <a
+                    href={settings.instagram_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      padding: "12px 18px",
+                      borderRadius: "14px",
+                      backgroundColor: "rgba(236, 72, 153, 0.18)",
+                      color: "#f9a8d4",
+                      textDecoration: "none",
+                      fontWeight: "700",
+                    }}
+                  >
+                    Instagram
+                  </a>
+                )}
+              </div>
+            )}
             <div
               style={{
                 display: "grid",
@@ -807,7 +914,7 @@ function App() {
                   🕒 {lang === "ar" ? "أوقات العمل" : "Hours"}
                 </h3>
                 <p style={{ margin: 0, color: "#94a3b8" }}>
-                  12:00 PM - 1:00 AM
+                  {settings.working_hours || "12:00 PM - 1:00 AM"}
                 </p>
               </div>
               <div

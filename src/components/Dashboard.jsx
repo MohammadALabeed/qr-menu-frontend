@@ -327,6 +327,7 @@ function Dashboard() {
             text: "🟢 تم تحديث الإعدادات العامة بنجاح واقتدار!",
             type: "success",
           });
+          fetchAllDashboardData();
         } else {
           setSettingsMessage({
             text: "❌ فشل تحديث الإعدادات!",
