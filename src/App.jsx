@@ -4,7 +4,9 @@ import CartSlider from "./components/CartSlider";
 import FoodCard from "./components/FoodCard";
 
 // قراءة رابط السيرفر من ملف الـ .env مع رابط احتياطي ذكي لضمان استقرار التطبيق
-const API_BASE_URL = "https://backend-virid-kappa-61.vercel.app";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  "https://backend-virid-kappa-61.vercel.app";
 
 function App() {
   const [lang, setLang] = useState("ar");
@@ -276,6 +278,10 @@ function App() {
       total_price: parseFloat(cartTotal),
       items: cart.map((item) => ({
         id: item.id,
+        item_name:
+          typeof item.name === "object"
+            ? item.name.ar || item.name.en || ""
+            : item.name || "",
         quantity: item.quantity,
         price: item.price,
       })),
